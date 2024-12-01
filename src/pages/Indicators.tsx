@@ -26,7 +26,7 @@ export default function IndicatorsPage() {
     }
 
     return (
-        <div className="w-full h-screen flex flex-col justify-between space-y-2">
+        <div className="w-full h-full flex flex-col justify-between space-y-2">
             <div className="flex flex-col space-y-2">
                 <span className="text-2xl text-zinc-900 font-bold">Technical Analysis and Indicators</span>
                 <span className="text-md text-zinc-500">Select indicators below to add to your dataset </span>

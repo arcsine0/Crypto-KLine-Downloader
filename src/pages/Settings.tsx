@@ -46,7 +46,7 @@ export default function SettingsPage() {
     }
 
     return (
-        <div className="w-full h-screen flex flex-col space-y-4">
+        <div className="w-full h-full flex flex-col space-y-4">
             <span className="text-2xl text-zinc-900 font-bold">Settings</span>
             <span className="text-md text-zinc-500">This application utilizes the Bybit API to fetch cryptocurrency data, therefore it requires your API credentials in order to access their servers. </span>
             <Form {...form}>

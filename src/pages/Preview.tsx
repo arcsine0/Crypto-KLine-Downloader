@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils";
 
 export default function PreviewPage() {
     return (
-        <div className="w-full h-screen flex flex-col space-y-2">
+        <div className="w-full h-full flex flex-col space-y-2">
             <span className="text-2xl text-zinc-900 font-bold">Preview and Export</span>
             <Table>
                 <TableCaption>[pair] at [interval] from [start date] to [end date]</TableCaption>

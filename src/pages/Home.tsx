@@ -71,7 +71,7 @@ export default function HomePage() {
     }
 
     return (
-        <div className="w-full h-screen flex flex-col space-y-2">
+        <div className="w-full h-full flex flex-col space-y-2">
             <span className="text-2xl text-zinc-900 font-bold">Crypocurrency Data Fetcher</span>
             <Form {...form}>
                 <form

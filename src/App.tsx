@@ -4,7 +4,6 @@ import { cn } from "@/lib/utils.ts";
 
 import { useSidebar, Sidebar, SidebarContent, SidebarGroup, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarFooter } from "./components/ui/sidebar";
 import { House, ChartNoAxesColumn, FileDown, Settings } from "lucide-react";
-import "./App.css";
 
 import HomePage from "./pages/Home.tsx";
 import IndicatorsPage from "./pages/Indicators.tsx";
@@ -113,7 +112,9 @@ function App() {
                     </SidebarMenu>
                 </SidebarFooter>
             </Sidebar>
-            {renderPages()}
+            <div className="w-full h-full p-8">
+                {renderPages()}
+            </div>
         </div>
     )
 }
