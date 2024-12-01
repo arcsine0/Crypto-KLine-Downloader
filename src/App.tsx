@@ -47,7 +47,7 @@ function App() {
     }
 
     return (
-        <div className="h-full w-full flex flex-row">
+        <div className="h-screen w-screen flex flex-row">
             <Sidebar
                 collapsible="icon"
                 onMouseEnter={() => setOpen(true)}
