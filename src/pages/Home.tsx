@@ -103,8 +103,7 @@ export default function HomePage() {
                                     <FormMessage />
                                 </FormItem>
                             )}
-                        >
-                        </FormField>
+                        />
                         <FormField
                             control={form.control}
                             name="pair"
@@ -129,8 +128,7 @@ export default function HomePage() {
                                     <FormMessage />
                                 </FormItem>
                             )}
-                        >
-                        </FormField>
+                        />
                     </div>
                     <div className="w-full flex flex-row space-x-2">
                         <FormField
@@ -157,8 +155,7 @@ export default function HomePage() {
                                     <FormMessage />
                                 </FormItem>
                             )}
-                        >
-                        </FormField>
+                        />
                         <FormField
                             control={form.control}
                             name="limit"
@@ -166,14 +163,13 @@ export default function HomePage() {
                                 <FormItem className="w-full">
                                     <FormLabel>Limit</FormLabel>
                                     <FormControl>
-                                        <Input placeholder="200" {...field} />
+                                        <Input placeholder="200" {...field} defaultValue={field.value} />
                                     </FormControl>
                                     <FormDescription>Input the number limit of data</FormDescription>
                                     <FormMessage />
                                 </FormItem>
                             )}
-                        >
-                        </FormField>
+                        />
                     </div>
                     <div className="w-full flex flex-row space-x-2">
                         <FormField
@@ -216,8 +212,7 @@ export default function HomePage() {
                                     <FormMessage />
                                 </FormItem>
                             )}
-                        >
-                        </FormField>
+                        />
                         <FormField
                             control={form.control}
                             name="endDate"
@@ -258,8 +253,7 @@ export default function HomePage() {
                                     <FormMessage />
                                 </FormItem>
                             )}
-                        >
-                        </FormField>
+                        />
                     </div>
                     <Button
                         className="w-full"

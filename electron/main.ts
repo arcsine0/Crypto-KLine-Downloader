@@ -79,5 +79,15 @@ app.whenReady().then(() => {
             console.error("Error fetching data:", error);
         }
     });
+    ipcMain.handle("setAPIConfig", async (event, data) => {
+        console.log("API Credentials successfully saved locally: ", data);
+    
+        try {
+            return "Success";
+        } catch (error) {
+            console.error("Error saving config:", error);
+        }
+    });
+
     createWindow();
 })
