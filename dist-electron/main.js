@@ -1,4 +1,4 @@
-import { app, BrowserWindow } from "electron";
+import { app, BrowserWindow, ipcMain } from "electron";
 import { createRequire } from "node:module";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
@@ -40,7 +40,17 @@ app.on("activate", () => {
     createWindow();
   }
 });
-app.whenReady().then(createWindow);
+app.whenReady().then(() => {
+  ipcMain.handle("fetchData", async (event, data) => {
+    console.log("Data received from front-end: ", data);
+    try {
+      return "Success";
+    } catch (error) {
+      console.error("Error fetching data:", error);
+    }
+  });
+  createWindow();
+});
 export {
   MAIN_DIST,
   RENDERER_DIST,
