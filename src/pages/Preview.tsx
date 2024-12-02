@@ -7,19 +7,15 @@ import { Dataset } from "@/lib/types";
 
 export default function PreviewPage() {
     const [dataset, setDataset] = useState<Dataset | undefined>(undefined);
+    const previewRows = 50;
 
     const getDataset = async () => {
         try {
-            const response = await window.ipcRenderer.invoke("getDataset");
+            const response: Dataset = await window.ipcRenderer.invoke("getDataset");
 
             if (response) {
-                const temp: Dataset = {
-                    name: response.name,
-                    data: response.data 
-                };
-
-                if (temp.data.list.length > 0) {
-                    setDataset(temp);
+                if (response.data.list.length > 0) {
+                    setDataset(response);
                 }
             }
         } catch (error) {
@@ -34,6 +30,9 @@ export default function PreviewPage() {
     return (
         <div className="w-full h-full flex flex-col space-y-2">
             <span className="text-2xl text-zinc-900 font-bold">Preview and Export</span>
+            <div className="w-full flex flex-row space-x-4"> 
+                <span className="text-sm text-zinc-500">Showing <span className="text-bold">{previewRows}</span> out of <span className="text-bold">{dataset?.data.list.length || 0}</span> Rows</span>
+            </div>
             <div className="w-full h-1/2">
                 {dataset ?
                     <Table className="w-full">
@@ -49,13 +48,14 @@ export default function PreviewPage() {
                             </TableRow>
                         </TableHeader>
                         <TableBody className="shrink overflow-y-scroll">
-                            {dataset.data.list.map((item, index) => (
+                            {dataset.data.list.slice(0, previewRows).map((item, index) => (
                                 <TableRow key={index}>
                                     <TableCell>{item[0]}</TableCell>
                                     <TableCell>{item[1]}</TableCell>
                                     <TableCell>{item[2]}</TableCell>
                                     <TableCell>{item[3]}</TableCell>
                                     <TableCell>{item[4]}</TableCell>
+                                    <TableCell>{item[5]}</TableCell>
                                 </TableRow>
                             ))}
                         </TableBody>

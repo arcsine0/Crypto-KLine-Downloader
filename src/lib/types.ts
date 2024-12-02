@@ -23,6 +23,16 @@ export interface RequestHeaders {
     [key: string]: any | undefined;
 }
 
+export interface responseData {
+    retCode: number;
+    retMsg: string;
+    result: {
+        symbol: string;
+        category: string;
+        list: any[];
+    };
+}
+
 export interface Dataset {
     name: string | undefined;
     data: {

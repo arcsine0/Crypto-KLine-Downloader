@@ -15279,6 +15279,21 @@ const store = new ElectronStore({
     apiSecret: void 0
   }
 });
+const intervals = [
+  { title: "1m", value: "1" },
+  { title: "3m", value: "3" },
+  { title: "5m", value: "5" },
+  { title: "15m", value: "15" },
+  { title: "30m", value: "30" },
+  { title: "60m", value: "60" },
+  { title: "120m", value: "120" },
+  { title: "240m", value: "240" },
+  { title: "360m", value: "360" },
+  { title: "720m", value: "720" },
+  { title: "1D", value: "D" },
+  { title: "1W", value: "W" },
+  { title: "1M", value: "M" }
+];
 function createWindow() {
   win = new BrowserWindow({
     width: 1024,
@@ -15328,6 +15343,77 @@ async function requestFromBybit(endpoint, data, method) {
     return response.status;
   }
 }
+async function fetchFullDataFromBybit(data) {
+  var _a;
+  try {
+    let dataset2 = {
+      name: `${data.symbol} at ${data.interval} from ${new Date(data.start).toLocaleDateString()} to ${new Date(data.end || Date.now()).toLocaleDateString()}`,
+      data: {
+        category: data.category,
+        symbol: data.symbol,
+        list: []
+      }
+    };
+    let currentStart = data.start;
+    let keepFetching = true;
+    console.log(`Starting fetch for ${data.symbol} at ${new Date(data.start).toLocaleString()}`);
+    while (keepFetching) {
+      let currentEnd = 0;
+      if (data.interval.match(/^\d+[m]$/)) {
+        const intervalMinutes = parseInt(data.interval, 10);
+        currentEnd = parseInt(currentStart) + data.limit * intervalMinutes * 60 * 1e3;
+      } else if (data.interval === "D") {
+        currentEnd = parseInt(currentStart) + data.limit * 24 * 60 * 60 * 1e3;
+      } else {
+        console.log("Intervals other than minutes and days are not supported");
+        return void 0;
+      }
+      let endTimestamp = data.end ? parseInt(data.end) : Date.now();
+      if (isNaN(endTimestamp)) {
+        endTimestamp = Date.now();
+        console.warn("Invalid end date. Using current time.");
+      }
+      currentEnd = Math.min(currentEnd, endTimestamp);
+      console.log(currentStart, currentEnd);
+      const requestData2 = {
+        ...data,
+        interval: ((_a = intervals.find((interval) => interval.title === data.interval)) == null ? void 0 : _a.value) || 60,
+        start: currentStart,
+        end: currentEnd
+      };
+      const response = await requestFromBybit("/v5/market/kline", requestData2, "GET");
+      if (!response || !response.result || !response.result.list || response.result.list.length === 0) {
+        console.error("Invalid or empty response:", response);
+        return "Empty";
+      }
+      const responseData2 = {
+        retCode: response.retCode,
+        retMsg: response.retMsg,
+        result: {
+          symbol: response.result.symbol,
+          category: response.result.category,
+          list: response.result.list.reverse()
+        }
+      };
+      const lastTimestamp = responseData2.result.list[responseData2.result.list.length - 1][0];
+      console.log(`Fetched data from ${new Date(currentStart).toLocaleString()} to ${new Date(lastTimestamp).toLocaleString()}`);
+      dataset2.name = `${data.symbol} at ${data.interval} from ${new Date(data.start).toLocaleDateString()} to ${new Date(lastTimestamp).toLocaleString()}`;
+      dataset2.data.list.push(...responseData2.result.list);
+      if (lastTimestamp >= (data.end || Date.now())) {
+        console.log(`Reached end timestamp`);
+        keepFetching = false;
+      } else {
+        console.log(`Continuing to next fetch`);
+        currentStart = (parseInt(lastTimestamp) + 1).toString();
+      }
+    }
+    console.log("Final Dataset Length: ", dataset2.data.list.length);
+    return dataset2;
+  } catch (error2) {
+    console.error("Error fetching data:", error2);
+    return void 0;
+  }
+}
 app.on("window-all-closed", () => {
   if (process.platform !== "darwin") {
     app.quit();
@@ -15354,12 +15440,9 @@ app.whenReady().then(() => {
   });
   ipcMain.handle("fetchData", async (event, data) => {
     try {
-      const response = await requestFromBybit("/v5/market/kline", data, "GET");
+      const response = await fetchFullDataFromBybit(data);
       if (response) {
-        dataset = {
-          name: `${data.symbol} at ${data.interval} from ${new Date(data.start).toLocaleDateString()} to ${new Date(data.end || Date.now()).toLocaleDateString()}`,
-          data: response.result
-        };
+        dataset = response;
         return "Success";
       } else {
         return "Failed";

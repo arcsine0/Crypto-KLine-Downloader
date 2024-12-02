@@ -29,6 +29,7 @@ const formSchema = z.object({
         required_error: "Interval is required"
     }),
     limit: z
+        .coerce
         .number({
             required_error: "Limit number required"
         })
@@ -54,10 +55,10 @@ export default function HomePage() {
         defaultValues: {
             category: "linear",
             symbol: "BTCUSDT",
-            interval: "60",
+            interval: "60m",
             limit: 200,
-            start: new Date("2013-01-01"),
-            end: undefined,
+            start: new Date("2021-01-01"),
+            end: new Date("2022-01-30"),
         }
     });
 
@@ -66,8 +67,8 @@ export default function HomePage() {
 
         const processedData = {
             ...data,
-            start: data.start ? data.start.getTime() : new Date("2013-01-01").getTime(),
-            end: data.end ? data.end.getTime() : new Date().getTime()
+            start: data.start ? data.start.getTime() : new Date("2021-01-01").getTime(),
+            end: data.end ? data.end.getTime() : new Date("2022-01-30").getTime()
         };
 
         try {
@@ -118,7 +119,7 @@ export default function HomePage() {
                                         <FormControl>
                                             <SelectTrigger>
                                                 <SelectValue placeholder="Select category">
-                                                    {field.value}
+                                                    {categories.find(category => category.value === field.value)?.title || field.value}
                                                 </SelectValue>
                                             </SelectTrigger>
                                         </FormControl>
@@ -176,7 +177,7 @@ export default function HomePage() {
                                         </FormControl>
                                         <SelectContent>
                                             {intervals.map((interval, index) => (
-                                                <SelectItem key={index} value={interval.value}>{interval.title}</SelectItem>
+                                                <SelectItem key={index} value={interval.title}>{interval.title}</SelectItem>
                                             ))}
                                         </SelectContent>
                                     </Select>
@@ -237,12 +238,16 @@ export default function HomePage() {
                                         <PopoverContent className="w-auto p-0" align="start">
                                             <Calendar
                                                 mode="single"
+                                                captionLayout="dropdown-buttons"
                                                 selected={field.value}
                                                 onSelect={field.onChange}
+                                                today={new Date(field.value)}
                                                 disabled={(date) =>
-                                                    date > new Date() || date < new Date("2013-01-01")
+                                                    date > new Date() || date < new Date("1900-01-01")
                                                 }
-                                                initialFocus
+                                                fromYear={1960}
+                                                toYear={2030}
+                                                // initialFocus
                                             />
                                         </PopoverContent>
                                     </Popover>
@@ -278,12 +283,16 @@ export default function HomePage() {
                                         <PopoverContent className="w-auto p-0" align="start">
                                             <Calendar
                                                 mode="single"
+                                                captionLayout="dropdown-buttons"
                                                 selected={field.value}
                                                 onSelect={field.onChange}
+                                                today={new Date(field.value)}
                                                 disabled={(date) =>
                                                     date > new Date() || date < new Date("1900-01-01")
                                                 }
-                                                initialFocus
+                                                fromYear={1960}
+                                                toYear={2030}
+                                                // initialFocus
                                             />
                                         </PopoverContent>
                                     </Popover>
