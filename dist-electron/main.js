@@ -15355,18 +15355,41 @@ async function fetchFullDataFromBybit(data) {
       }
     };
     let currentStart = data.start;
+    let totalTimeRange = (data.end ? parseInt(data.end) : Date.now()) - parseInt(data.start);
+    if (isNaN(totalTimeRange)) {
+      console.error("Invalid start or end date");
+      totalTimeRange = 1;
+    }
     let keepFetching = true;
     console.log(`Starting fetch for ${data.symbol} at ${new Date(data.start).toLocaleString()}`);
     while (keepFetching) {
       let currentEnd = 0;
-      if (data.interval.match(/^\d+[m]$/)) {
-        const intervalMinutes = parseInt(data.interval, 10);
-        currentEnd = parseInt(currentStart) + data.limit * intervalMinutes * 60 * 1e3;
-      } else if (data.interval === "D") {
-        currentEnd = parseInt(currentStart) + data.limit * 24 * 60 * 60 * 1e3;
-      } else {
-        console.log("Intervals other than minutes and days are not supported");
-        return void 0;
+      switch (data.interval) {
+        case "1m":
+        case "3m":
+        case "5m":
+        case "15m":
+        case "30m":
+        case "60m":
+        case "120m":
+        case "240m":
+        case "360m":
+        case "720m":
+          const intervalMinutes = parseInt(data.interval, 10);
+          currentEnd = parseInt(currentStart) + data.limit * intervalMinutes * 60 * 1e3;
+          break;
+        case "D":
+          currentEnd = parseInt(currentStart) + data.limit * 24 * 60 * 60 * 1e3;
+          break;
+        case "W":
+          currentEnd = parseInt(currentStart) + data.limit * 7 * 24 * 60 * 60 * 1e3;
+          break;
+        case "M":
+          currentEnd = parseInt(currentStart) + data.limit * 30 * 24 * 60 * 60 * 1e3;
+          break;
+        default:
+          console.error("Unsupported interval:", data.interval);
+          return void 0;
       }
       let endTimestamp = data.end ? parseInt(data.end) : Date.now();
       if (isNaN(endTimestamp)) {
@@ -15374,16 +15397,27 @@ async function fetchFullDataFromBybit(data) {
         console.warn("Invalid end date. Using current time.");
       }
       currentEnd = Math.min(currentEnd, endTimestamp);
-      console.log(currentStart, currentEnd);
       const requestData2 = {
         ...data,
         interval: ((_a = intervals.find((interval) => interval.title === data.interval)) == null ? void 0 : _a.value) || 60,
         start: currentStart,
         end: currentEnd
       };
+      const progress = {
+        status: "ongoing",
+        progress: Math.max(1, Math.min(99, Math.round((parseInt(currentStart) - parseInt(data.start)) / totalTimeRange * 100))),
+        state: `Fetching date ${currentStart} data...`
+      };
+      win == null ? void 0 : win.webContents.send("progress", progress);
       const response = await requestFromBybit("/v5/market/kline", requestData2, "GET");
       if (!response || !response.result || !response.result.list || response.result.list.length === 0) {
         console.error("Invalid or empty response:", response);
+        const progress2 = {
+          status: "ended",
+          progress: 100,
+          state: "Failed"
+        };
+        win == null ? void 0 : win.webContents.send("progress", progress2);
         return "Empty";
       }
       const responseData2 = {
@@ -15396,14 +15430,17 @@ async function fetchFullDataFromBybit(data) {
         }
       };
       const lastTimestamp = responseData2.result.list[responseData2.result.list.length - 1][0];
-      console.log(`Fetched data from ${new Date(currentStart).toLocaleString()} to ${new Date(lastTimestamp).toLocaleString()}`);
       dataset2.name = `${data.symbol} at ${data.interval} from ${new Date(data.start).toLocaleDateString()} to ${new Date(lastTimestamp).toLocaleString()}`;
       dataset2.data.list.push(...responseData2.result.list);
       if (lastTimestamp >= (data.end || Date.now())) {
-        console.log(`Reached end timestamp`);
+        const progress2 = {
+          status: "ended",
+          progress: 100,
+          state: "Finished"
+        };
+        win == null ? void 0 : win.webContents.send("progress", progress2);
         keepFetching = false;
       } else {
-        console.log(`Continuing to next fetch`);
         currentStart = (parseInt(lastTimestamp) + 1).toString();
       }
     }
@@ -15442,6 +15479,9 @@ app.whenReady().then(() => {
     try {
       const response = await fetchFullDataFromBybit(data);
       if (response) {
+        if (response === "Empty") {
+          return "Failed";
+        }
         dataset = response;
         return "Success";
       } else {

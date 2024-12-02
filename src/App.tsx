@@ -3,15 +3,23 @@ import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils.ts";
 
 import { useSidebar, Sidebar, SidebarContent, SidebarGroup, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarFooter } from "./components/ui/sidebar";
+import { Progress } from "@/components/ui/progress.tsx";
 import { House, ChartNoAxesColumn, FileDown, Settings } from "lucide-react";
+
+import { ProgressProps } from "./lib/types.ts";
 
 import HomePage from "./pages/Home.tsx";
 import IndicatorsPage from "./pages/Indicators.tsx";
 import PreviewPage from "./pages/Preview.tsx";
 import SettingsPage from "./pages/Settings.tsx";
+import { set } from "date-fns";
 
 function App() {
     const [activeIndex, setActiveIndex] = useState<number>(0);
+
+    const [progressCount, setProgressCount] = useState<number>(0);
+    const [progressState, setProgressState] = useState<string>("Doing something...");
+    const [showProgressBar, setShowProgressBar] = useState<boolean>(false);
 
     const { setOpen } = useSidebar();
 
@@ -44,6 +52,17 @@ function App() {
                 return <HomePage />
         }
     }
+
+    window.ipcRenderer.on("progress", (event, data: ProgressProps) => {
+        if (data.status === "ongoing") {
+            setShowProgressBar(true);
+        } else {
+            setShowProgressBar(false);
+        }
+
+        setProgressCount(data.progress);
+        setProgressState(data.state);
+    });
 
     return (
         <div className="h-screen w-screen flex flex-row">
@@ -112,8 +131,17 @@ function App() {
                     </SidebarMenu>
                 </SidebarFooter>
             </Sidebar>
-            <div className="w-full h-full p-8">
-                {renderPages()}
+            <div className="w-full h-full flex flex-col justify-between">
+                <div className="w-full h-full p-8">
+                    {renderPages()}
+                </div>
+                <div className={cn([
+                    showProgressBar ? "visible" : "invisible",
+                    "w-full flex flex-col space-y-1"
+                ])}>
+                    <span className="text-sm text-zinc-500 pl-2">{progressState}</span>
+                    <Progress value={progressCount} />
+                </div>
             </div>
         </div>
     )

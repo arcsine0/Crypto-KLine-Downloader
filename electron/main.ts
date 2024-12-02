@@ -7,7 +7,7 @@ import path from "node:path";
 
 import { createHmac } from "node:crypto";
 
-import { requestData, requestCredentials, RequestHeaders, responseData, Dataset } from "@/lib/types";
+import { requestData, requestCredentials, RequestHeaders, responseData, Dataset, ProgressProps } from "@/lib/types";
 
 const require = createRequire(import.meta.url);
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -123,16 +123,6 @@ async function requestFromBybit(endpoint: string, data: any, method: "GET" | "PO
     }
 }
 
-// const responseData: responseData = {
-//     retCode: response.retCode,
-//     retMsg: response.retMsg,
-//     result: {
-//         symbol: response.result.symbol,
-//         category: response.result.category,
-//         list: response.result.list.reverse(),
-//     }
-// };
-
 async function fetchFullDataFromBybit(data: requestData): Promise<Dataset | "Empty" | undefined> {
     try {
         let dataset: Dataset = {
@@ -145,30 +135,52 @@ async function fetchFullDataFromBybit(data: requestData): Promise<Dataset | "Emp
         };
 
         let currentStart = data.start;
+
+        let totalTimeRange = (data.end ? parseInt(data.end) : Date.now()) - parseInt(data.start);
+        if (isNaN(totalTimeRange)) {
+            console.error("Invalid start or end date");
+            totalTimeRange = 1; 
+        }
+
         let keepFetching = true;
 
         console.log(`Starting fetch for ${data.symbol} at ${new Date(data.start).toLocaleString()}`);
         while (keepFetching) {
             let currentEnd = 0;
-            if (data.interval.match(/^\d+[m]$/)) {
-                const intervalMinutes = parseInt(data.interval, 10);
-                currentEnd = parseInt(currentStart) + (data.limit * intervalMinutes * 60 * 1000);
-            }
-            else if (data.interval ==="D") {
-                currentEnd = parseInt(currentStart) + (data.limit * 24 * 60 * 60 * 1000);
-            }
-            else {
-                console.log("Intervals other than minutes and days are not supported")
-                return undefined;
+            switch (data.interval) {
+                case "1m":
+                case "3m":
+                case "5m":
+                case "15m":
+                case "30m":
+                case "60m":
+                case "120m":
+                case "240m":
+                case "360m":
+                case "720m":
+                    const intervalMinutes = parseInt(data.interval, 10);
+                    currentEnd = parseInt(currentStart) + (data.limit * intervalMinutes * 60 * 1000);
+                    break;
+                case "D":
+                    currentEnd = parseInt(currentStart) + (data.limit * 24 * 60 * 60 * 1000);
+                    break;
+                case "W":
+                    currentEnd = parseInt(currentStart) + (data.limit * 7 * 24 * 60 * 60 * 1000);
+                    break;
+                case "M":
+                    currentEnd = parseInt(currentStart) + (data.limit * 30 * 24 * 60 * 60 * 1000);
+                    break;
+                default:
+                    console.error("Unsupported interval:", data.interval);
+                    return undefined;
             }
 
             let endTimestamp = data.end ? parseInt(data.end) : Date.now();
             if (isNaN(endTimestamp)) {
-                endTimestamp = Date.now(); // Use current time if data.end is invalid
+                endTimestamp = Date.now();
                 console.warn("Invalid end date. Using current time.");
             }
             currentEnd = Math.min(currentEnd, endTimestamp);
-            console.log(currentStart, currentEnd)
 
             const requestData = { 
                 ...data, 
@@ -176,10 +188,26 @@ async function fetchFullDataFromBybit(data: requestData): Promise<Dataset | "Emp
                 start: currentStart, 
                 end: currentEnd 
             };
+            const progress: ProgressProps = {
+                status: "ongoing",
+                progress: Math.max(1, Math.min(99, Math.round(((parseInt(currentStart) - parseInt(data.start)) / totalTimeRange) * 100))),
+                state: `Fetching date ${currentStart} data...`,
+            }
+
+            win?.webContents.send("progress", progress);
+
             const response = await requestFromBybit("/v5/market/kline", requestData, "GET");
 
             if (!response || !response.result || !response.result.list || response.result.list.length === 0) {
                 console.error("Invalid or empty response:", response);
+
+                const progress: ProgressProps = {
+                    status: "ended",
+                    progress: 100,
+                    state: "Failed",
+                }
+
+                win?.webContents.send("progress", progress);
                 return "Empty";
             }
 
@@ -194,21 +222,25 @@ async function fetchFullDataFromBybit(data: requestData): Promise<Dataset | "Emp
             };
 
             const lastTimestamp = responseData.result.list[responseData.result.list.length - 1][0];
-            console.log(`Fetched data from ${new Date(currentStart).toLocaleString()} to ${new Date(lastTimestamp).toLocaleString()}`);
 
             dataset.name = `${data.symbol} at ${data.interval} from ${new Date(data.start).toLocaleDateString()} to ${new Date(lastTimestamp).toLocaleString()}`
             dataset.data.list.push(...responseData.result.list);
 
             if (lastTimestamp >= (data.end || Date.now())) {
-                console.log(`Reached end timestamp`);
+                const progress: ProgressProps = {
+                    status: "ended",
+                    progress: 100,
+                    state: "Finished",
+                }
+                win?.webContents.send("progress", progress);
+                
                 keepFetching = false;
             } else {
-                console.log(`Continuing to next fetch`);
                 currentStart = (parseInt(lastTimestamp) + 1).toString();
             }
         }
         console.log("Final Dataset Length: ", dataset.data.list.length);
-        
+
         return dataset;
 
     } catch (error) {
@@ -254,26 +286,9 @@ async function fetchFullDataFromBybit(data: requestData): Promise<Dataset | "Emp
         ipcMain.handle("fetchData", async (event, data: requestData) => {
             try {
                 const response = await fetchFullDataFromBybit(data);
-                // const response = await requestFromBybit("/v5/market/kline", data, "GET");
 
                 if (response) {
-                    // if (response === "Empty") { return "Failed"; }
-                    // const responseData: responseData = {
-                    //     retCode: response.retCode,
-                    //     retMsg: response.retMsg,
-                    //     result: {
-                    //         symbol: response.result.symbol,
-                    //         category: response.result.category,
-                    //         list: response.result.list.reverse(),
-                    //     }
-                    // };
-                    // const startDate = responseData.result.list[0][0];
-                    // const endDate = responseData.result.list[responseData.result.list.length - 1][0];
-
-                    // dataset = {
-                    //     name: `${data.symbol} at ${data.interval} from ${startDate} to ${endDate}`,
-                    //     data: responseData.result,
-                    // };
+                    if (response === "Empty") { return "Failed"; }
                     dataset = response;
 
                     return "Success";

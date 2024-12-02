@@ -41,3 +41,9 @@ export interface Dataset {
         list: any[];
     };
 }
+
+export interface ProgressProps {
+    status: string;
+    progress: number;
+    state: string;
+}
