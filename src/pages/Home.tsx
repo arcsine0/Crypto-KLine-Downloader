@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -22,7 +22,7 @@ const formSchema = z.object({
     category: z.string({
         required_error: "Category is required"
     }),
-    pair: z.string({
+    symbol: z.string({
         required_error: "Cryptocurrency pair is required"
     }),
     interval: z.string({
@@ -35,33 +35,44 @@ const formSchema = z.object({
         .min(100, "Minimum limit is 100")
         .max(1000, "Maximum limit is 1000")
     ,
-    startDate: z.date({
+    start: z.date({
         required_error: "Start date is required"
     }),
-    endDate: z.date().optional()
+    end: z.date().optional()
 });
 
 export default function HomePage() {
+    const [APIConfig, setAPIConfig] = useState<{
+        apiKey: string | undefined;
+        apiSecret: string | undefined;
+    } | undefined>(undefined);
+
     const [isFetching, setIsFetching] = useState<boolean>(false);
 
     const form = useForm({
         resolver: zodResolver(formSchema),
         defaultValues: {
-            category: "Linear",
-            pair: "BTCUSDT",
-            interval: "60M",
+            category: "linear",
+            symbol: "BTCUSDT",
+            interval: "60",
             limit: 200,
-            startDate: new Date("2013-01-01"),
-            endDate: undefined,
+            start: new Date("2013-01-01"),
+            end: undefined,
         }
     });
 
     const fetchData = async (data: z.infer<typeof formSchema>) => {
         setIsFetching(true);
-        
+
+        const processedData = {
+            ...data,
+            start: data.start ? data.start.getTime() : new Date("2013-01-01").getTime(),
+            end: data.end ? data.end.getTime() : new Date().getTime()
+        };
+
         try {
-            const response = await window.ipcRenderer.invoke("fetchData", data);
-            
+            const response = await window.ipcRenderer.invoke("fetchData", processedData);
+
             if (response) {
                 setIsFetching(false);
             }
@@ -69,6 +80,20 @@ export default function HomePage() {
             console.log(error);
         }
     }
+
+    const checkAPIConfig = async () => {
+        const response = await window.ipcRenderer.invoke("getAPIConfig");
+        if (response) {
+            setAPIConfig({
+                apiKey: response.apiKey,
+                apiSecret: response.apiSecret,
+            })
+        }
+    };
+
+    useEffect(() => {
+        checkAPIConfig();
+    }, [])
 
     return (
         <div className="w-full h-full flex flex-col space-y-2">
@@ -85,7 +110,11 @@ export default function HomePage() {
                             render={({ field }) => (
                                 <FormItem className="w-full">
                                     <FormLabel>Category</FormLabel>
-                                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                    <Select 
+                                        onValueChange={field.onChange} 
+                                        defaultValue={field.value}
+                                        {...field}
+                                    >
                                         <FormControl>
                                             <SelectTrigger>
                                                 <SelectValue placeholder="Select category">
@@ -106,7 +135,7 @@ export default function HomePage() {
                         />
                         <FormField
                             control={form.control}
-                            name="pair"
+                            name="symbol"
                             render={({ field }) => (
                                 <FormItem className="w-full">
                                     <FormLabel>Cryptocurrency Pair</FormLabel>
@@ -163,7 +192,15 @@ export default function HomePage() {
                                 <FormItem className="w-full">
                                     <FormLabel>Limit</FormLabel>
                                     <FormControl>
-                                        <Input placeholder="200" {...field} defaultValue={field.value} />
+                                        <Input
+                                            type="number"
+                                            placeholder="200"
+                                            min={100}
+                                            max={1000}
+                                            step={100}
+                                            {...field}
+                                            defaultValue={field.value}
+                                        />
                                     </FormControl>
                                     <FormDescription>Input the number limit of data</FormDescription>
                                     <FormMessage />
@@ -174,7 +211,7 @@ export default function HomePage() {
                     <div className="w-full flex flex-row space-x-2">
                         <FormField
                             control={form.control}
-                            name="startDate"
+                            name="start"
                             render={({ field }) => (
                                 <FormItem className="w-full flex flex-col space-y-2">
                                     <FormLabel>Start Date</FormLabel>
@@ -215,7 +252,7 @@ export default function HomePage() {
                         />
                         <FormField
                             control={form.control}
-                            name="endDate"
+                            name="end"
                             render={({ field }) => (
                                 <FormItem className="w-full flex flex-col space-y-2">
                                     <FormLabel>End Date</FormLabel>
@@ -258,7 +295,7 @@ export default function HomePage() {
                     <Button
                         className="w-full"
                         type="submit"
-                        disabled={isFetching}
+                        disabled={isFetching || !APIConfig || !APIConfig.apiKey || !APIConfig.apiSecret}
                     >
                         {isFetching ? (
                             <div className="flex flex-row space-x-2">
@@ -269,6 +306,9 @@ export default function HomePage() {
                             <span className="text-zinc-50">Fetch Data</span>
                         )}
                     </Button>
+                    {(!APIConfig || !APIConfig.apiKey || !APIConfig.apiSecret) && (
+                        <span className="text-sm text-zinc-500 text-center">Must set API Config in Settings first</span>
+                    )}
                 </form>
             </Form>
         </div>

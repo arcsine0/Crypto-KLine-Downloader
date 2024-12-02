@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -21,15 +21,30 @@ const formSchema = z.object({
 });
 
 export default function SettingsPage() {
+    const [config, setConfig] = useState<{
+        apiKey: string | undefined;
+        apiSecret: string | undefined;
+    } | undefined>(undefined);
+
     const [isConfigSetting, setIsConfigSetting] = useState<boolean>(false);
 
     const form = useForm({
         resolver: zodResolver(formSchema),
         defaultValues: {
-            key: "",
-            secret: ""
+            key: config?.apiKey || "",
+            secret: config?.apiSecret || "",
         },
     });
+
+    const getAPIConfig = async () => {
+        const response = await window.ipcRenderer.invoke("getAPIConfig");
+        if (response) {
+            setConfig({
+                apiKey: response.apiKey,
+                apiSecret: response.apiSecret,
+            })
+        }
+    };
 
     const setAPIConfig = async (data: z.infer<typeof formSchema>) => {
         setIsConfigSetting(true);
@@ -44,6 +59,10 @@ export default function SettingsPage() {
             console.log(error);
         }
     }
+
+    useEffect(() => {
+        getAPIConfig();
+    }, []);
 
     return (
         <div className="w-full h-full flex flex-col space-y-4">
