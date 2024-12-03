@@ -9,9 +9,9 @@ var __privateGet = (obj, member, getter) => (__accessCheck(obj, member, "read fr
 var __privateAdd = (obj, member, value) => member.has(obj) ? __typeError("Cannot add the same private member more than once") : member instanceof WeakSet ? member.add(obj) : member.set(obj, value);
 var __privateSet = (obj, member, value, setter) => (__accessCheck(obj, member, "write to private field"), setter ? setter.call(obj, value) : member.set(obj, value), value);
 var _validator, _encryptionKey, _options, _defaultValues;
-import electron, { ipcMain, app, shell, BrowserWindow } from "electron";
+import electron, { ipcMain, app, shell, BrowserWindow, dialog } from "electron";
 import process$1 from "node:process";
-import path from "node:path";
+import path$1 from "node:path";
 import { promisify, isDeepStrictEqual } from "node:util";
 import fs from "node:fs";
 import crypto, { createHmac } from "node:crypto";
@@ -19,7 +19,7 @@ import assert from "node:assert";
 import os from "node:os";
 import { createRequire } from "node:module";
 import { fileURLToPath } from "node:url";
-const isObject = (value) => {
+const isObject$1 = (value) => {
   const type2 = typeof value;
   return value !== null && (type2 === "object" || type2 === "function");
 };
@@ -157,7 +157,7 @@ function assertNotStringIndex(object, key) {
   }
 }
 function getProperty(object, path2, value) {
-  if (!isObject(object) || typeof path2 !== "string") {
+  if (!isObject$1(object) || typeof path2 !== "string") {
     return value === void 0 ? object : value;
   }
   const pathArray = getPathSegments(path2);
@@ -181,7 +181,7 @@ function getProperty(object, path2, value) {
   return object === void 0 ? value : object;
 }
 function setProperty(object, path2, value) {
-  if (!isObject(object) || typeof path2 !== "string") {
+  if (!isObject$1(object) || typeof path2 !== "string") {
     return object;
   }
   const root = object;
@@ -191,7 +191,7 @@ function setProperty(object, path2, value) {
     assertNotStringIndex(object, key);
     if (index === pathArray.length - 1) {
       object[key] = value;
-    } else if (!isObject(object[key])) {
+    } else if (!isObject$1(object[key])) {
       object[key] = typeof pathArray[index + 1] === "number" ? [] : {};
     }
     object = object[key];
@@ -199,7 +199,7 @@ function setProperty(object, path2, value) {
   return root;
 }
 function deleteProperty(object, path2) {
-  if (!isObject(object) || typeof path2 !== "string") {
+  if (!isObject$1(object) || typeof path2 !== "string") {
     return false;
   }
   const pathArray = getPathSegments(path2);
@@ -211,13 +211,13 @@ function deleteProperty(object, path2) {
       return true;
     }
     object = object[key];
-    if (!isObject(object)) {
+    if (!isObject$1(object)) {
       return false;
     }
   }
 }
 function hasProperty(object, path2) {
-  if (!isObject(object) || typeof path2 !== "string") {
+  if (!isObject$1(object) || typeof path2 !== "string") {
     return false;
   }
   const pathArray = getPathSegments(path2);
@@ -225,7 +225,7 @@ function hasProperty(object, path2) {
     return false;
   }
   for (const key of pathArray) {
-    if (!isObject(object) || !(key in object) || isStringIndex(object, key)) {
+    if (!isObject$1(object) || !(key in object) || isStringIndex(object, key)) {
       return false;
     }
     object = object[key];
@@ -236,36 +236,36 @@ const homedir = os.homedir();
 const tmpdir = os.tmpdir();
 const { env } = process$1;
 const macos = (name) => {
-  const library = path.join(homedir, "Library");
+  const library = path$1.join(homedir, "Library");
   return {
-    data: path.join(library, "Application Support", name),
-    config: path.join(library, "Preferences", name),
-    cache: path.join(library, "Caches", name),
-    log: path.join(library, "Logs", name),
-    temp: path.join(tmpdir, name)
+    data: path$1.join(library, "Application Support", name),
+    config: path$1.join(library, "Preferences", name),
+    cache: path$1.join(library, "Caches", name),
+    log: path$1.join(library, "Logs", name),
+    temp: path$1.join(tmpdir, name)
   };
 };
 const windows = (name) => {
-  const appData = env.APPDATA || path.join(homedir, "AppData", "Roaming");
-  const localAppData = env.LOCALAPPDATA || path.join(homedir, "AppData", "Local");
+  const appData = env.APPDATA || path$1.join(homedir, "AppData", "Roaming");
+  const localAppData = env.LOCALAPPDATA || path$1.join(homedir, "AppData", "Local");
   return {
     // Data/config/cache/log are invented by me as Windows isn't opinionated about this
-    data: path.join(localAppData, name, "Data"),
-    config: path.join(appData, name, "Config"),
-    cache: path.join(localAppData, name, "Cache"),
-    log: path.join(localAppData, name, "Log"),
-    temp: path.join(tmpdir, name)
+    data: path$1.join(localAppData, name, "Data"),
+    config: path$1.join(appData, name, "Config"),
+    cache: path$1.join(localAppData, name, "Cache"),
+    log: path$1.join(localAppData, name, "Log"),
+    temp: path$1.join(tmpdir, name)
   };
 };
 const linux = (name) => {
-  const username = path.basename(homedir);
+  const username = path$1.basename(homedir);
   return {
-    data: path.join(env.XDG_DATA_HOME || path.join(homedir, ".local", "share"), name),
-    config: path.join(env.XDG_CONFIG_HOME || path.join(homedir, ".config"), name),
-    cache: path.join(env.XDG_CACHE_HOME || path.join(homedir, ".cache"), name),
+    data: path$1.join(env.XDG_DATA_HOME || path$1.join(homedir, ".local", "share"), name),
+    config: path$1.join(env.XDG_CONFIG_HOME || path$1.join(homedir, ".config"), name),
+    cache: path$1.join(env.XDG_CACHE_HOME || path$1.join(homedir, ".cache"), name),
     // https://wiki.debian.org/XDGBaseDirectorySpecification#state
-    log: path.join(env.XDG_STATE_HOME || path.join(homedir, ".local", "state"), name),
-    temp: path.join(tmpdir, username, name)
+    log: path$1.join(env.XDG_STATE_HOME || path$1.join(homedir, ".local", "state"), name),
+    temp: path$1.join(tmpdir, username, name)
   };
 };
 function envPaths(name, { suffix = "nodejs" } = {}) {
@@ -479,10 +479,10 @@ const LIMIT_BASENAME_LENGTH = 128;
 const isException = (value) => {
   return value instanceof Error && "code" in value;
 };
-const isString = (value) => {
+const isString$1 = (value) => {
   return typeof value === "string";
 };
-const isUndefined = (value) => {
+const isUndefined$1 = (value) => {
   return value === void 0;
 };
 const IS_LINUX = process$1.platform === "linux";
@@ -572,7 +572,7 @@ const Temp = {
     }
   },
   truncate: (filePath) => {
-    const basename = path.basename(filePath);
+    const basename = path$1.basename(filePath);
     if (basename.length <= LIMIT_BASENAME_LENGTH)
       return filePath;
     const truncable = /^(\.?)(.*?)((?:\.[^.]+)?(?:\.tmp-\d{10}[a-f0-9]{6})?)$/.exec(basename);
@@ -584,7 +584,7 @@ const Temp = {
 };
 whenExit(Temp.purgeSyncAll);
 function writeFileSync(filePath, data, options = DEFAULT_WRITE_OPTIONS) {
-  if (isString(options))
+  if (isString$1(options))
     return writeFileSync(filePath, data, { encoding: options });
   const timeout = Date.now() + ((options.timeout ?? DEFAULT_TIMEOUT_SYNC) || -1);
   let tempDisposer = null;
@@ -595,8 +595,8 @@ function writeFileSync(filePath, data, options = DEFAULT_WRITE_OPTIONS) {
     const filePathExists = !!filePathReal;
     filePath = filePathReal || filePath;
     [tempPath, tempDisposer] = Temp.get(filePath, options.tmpCreate || Temp.create, !(options.tmpPurge === false));
-    const useStatChown = IS_POSIX && isUndefined(options.chown);
-    const useStatMode = isUndefined(options.mode);
+    const useStatChown = IS_POSIX && isUndefined$1(options.chown);
+    const useStatMode = isUndefined$1(options.mode);
     if (filePathExists && (useStatChown || useStatMode)) {
       const stats = FS.attempt.statSync(filePath);
       if (stats) {
@@ -610,7 +610,7 @@ function writeFileSync(filePath, data, options = DEFAULT_WRITE_OPTIONS) {
       }
     }
     if (!filePathExists) {
-      const parentPath = path.dirname(filePath);
+      const parentPath = path$1.dirname(filePath);
       FS.attempt.mkdirSync(parentPath, {
         mode: DEFAULT_FOLDER_MODE,
         recursive: true
@@ -620,9 +620,9 @@ function writeFileSync(filePath, data, options = DEFAULT_WRITE_OPTIONS) {
     if (options.tmpCreated) {
       options.tmpCreated(tempPath);
     }
-    if (isString(data)) {
+    if (isString$1(data)) {
       FS.retry.writeSync(timeout)(fd, data, 0, options.encoding || DEFAULT_ENCODING);
-    } else if (!isUndefined(data)) {
+    } else if (!isUndefined$1(data)) {
       FS.retry.writeSync(timeout)(fd, data, 0, data.length, 0);
     }
     if (options.fsync !== false) {
@@ -658,12 +658,13 @@ function writeFileSync(filePath, data, options = DEFAULT_WRITE_OPTIONS) {
       Temp.purge(tempPath);
   }
 }
+var commonjsGlobal = typeof globalThis !== "undefined" ? globalThis : typeof window !== "undefined" ? window : typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : {};
 function getDefaultExportFromCjs(x2) {
   return x2 && x2.__esModule && Object.prototype.hasOwnProperty.call(x2, "default") ? x2["default"] : x2;
 }
 var _2020 = { exports: {} };
 var core$6 = {};
-var validate$1 = {};
+var validate$2 = {};
 var boolSchema$1 = {};
 var errors$1 = {};
 var codegen$1 = {};
@@ -1695,12 +1696,12 @@ function alwaysValidSchema$1(it2, schema) {
 }
 util$1.alwaysValidSchema = alwaysValidSchema$1;
 function checkUnknownRules$1(it2, schema = it2.schema) {
-  const { opts, self } = it2;
+  const { opts, self: self2 } = it2;
   if (!opts.strictSchema)
     return;
   if (typeof schema === "boolean")
     return;
-  const rules2 = self.RULES.keywords;
+  const rules2 = self2.RULES.keywords;
   for (const key in schema) {
     if (!rules2[key])
       checkStrictMode$1(it2, `unknown keyword: "${key}"`);
@@ -1819,8 +1820,8 @@ var Type$1;
 })(Type$1 || (util$1.Type = Type$1 = {}));
 function getErrorPath$1(dataProp, dataPropType, jsPropertySyntax) {
   if (dataProp instanceof codegen_1$13.Name) {
-    const isNumber = dataPropType === Type$1.Num;
-    return jsPropertySyntax ? isNumber ? (0, codegen_1$13._)`"[" + ${dataProp} + "]"` : (0, codegen_1$13._)`"['" + ${dataProp} + "']"` : isNumber ? (0, codegen_1$13._)`"/" + ${dataProp}` : (0, codegen_1$13._)`"/" + ${dataProp}.replace(/~/g, "~0").replace(/\\//g, "~1")`;
+    const isNumber2 = dataPropType === Type$1.Num;
+    return jsPropertySyntax ? isNumber2 ? (0, codegen_1$13._)`"[" + ${dataProp} + "]"` : (0, codegen_1$13._)`"['" + ${dataProp} + "']"` : isNumber2 ? (0, codegen_1$13._)`"/" + ${dataProp}` : (0, codegen_1$13._)`"/" + ${dataProp}.replace(/~/g, "~0").replace(/\\//g, "~1")`;
   }
   return jsPropertySyntax ? (0, codegen_1$13.getProperty)(dataProp).toString() : "/" + escapeJsonPointer$1(dataProp);
 }
@@ -2057,8 +2058,8 @@ rules$1.getRules = getRules$1;
 var applicability$1 = {};
 Object.defineProperty(applicability$1, "__esModule", { value: true });
 applicability$1.shouldUseRule = applicability$1.shouldUseGroup = applicability$1.schemaHasRulesForType = void 0;
-function schemaHasRulesForType$1({ schema, self }, type2) {
-  const group = self.RULES.types[type2];
+function schemaHasRulesForType$1({ schema, self: self2 }, type2) {
+  const group = self2.RULES.types[type2];
   return group && group !== true && shouldUseGroup$1(schema, group);
 }
 applicability$1.schemaHasRulesForType = schemaHasRulesForType$1;
@@ -2498,7 +2499,7 @@ function validSchemaType$1(schema, schemaType, allowUndefined = false) {
   return !schemaType.length || schemaType.some((st2) => st2 === "array" ? Array.isArray(schema) : st2 === "object" ? schema && typeof schema == "object" && !Array.isArray(schema) : typeof schema == st2 || allowUndefined && typeof schema == "undefined");
 }
 keyword$1.validSchemaType = validSchemaType$1;
-function validateKeywordUsage$1({ schema, opts, self, errSchemaPath }, def2, keyword2) {
+function validateKeywordUsage$1({ schema, opts, self: self2, errSchemaPath }, def2, keyword2) {
   if (Array.isArray(def2.keyword) ? !def2.keyword.includes(keyword2) : def2.keyword !== keyword2) {
     throw new Error("ajv implementation error");
   }
@@ -2509,9 +2510,9 @@ function validateKeywordUsage$1({ schema, opts, self, errSchemaPath }, def2, key
   if (def2.validateSchema) {
     const valid2 = def2.validateSchema(schema[keyword2]);
     if (!valid2) {
-      const msg = `keyword "${keyword2}" value is invalid at path "${errSchemaPath}": ` + self.errorsText(def2.validateSchema.errors);
+      const msg = `keyword "${keyword2}" value is invalid at path "${errSchemaPath}": ` + self2.errorsText(def2.validateSchema.errors);
       if (opts.validateSchema === "log")
-        self.logger.error(msg);
+        self2.logger.error(msg);
       else
         throw new Error(msg);
     }
@@ -2856,8 +2857,8 @@ function getSchemaRefs$1(schema, baseId) {
   }
 }
 resolve$4.getSchemaRefs = getSchemaRefs$1;
-Object.defineProperty(validate$1, "__esModule", { value: true });
-validate$1.getData = validate$1.KeywordCxt = validate$1.validateFunctionCode = void 0;
+Object.defineProperty(validate$2, "__esModule", { value: true });
+validate$2.getData = validate$2.KeywordCxt = validate$2.validateFunctionCode = void 0;
 const boolSchema_1$1 = boolSchema$1;
 const dataType_1$3 = dataType$1;
 const applicability_1$2 = applicability$1;
@@ -2880,7 +2881,7 @@ function validateFunctionCode$1(it2) {
   }
   validateFunction$1(it2, () => (0, boolSchema_1$1.topBoolOrEmptySchema)(it2));
 }
-validate$1.validateFunctionCode = validateFunctionCode$1;
+validate$2.validateFunctionCode = validateFunctionCode$1;
 function validateFunction$1({ gen, validateName, schema, schemaEnv, opts }, body) {
   if (opts.code.es5) {
     gen.func(validateName, (0, codegen_1$X._)`${names_1$d.default.data}, ${names_1$d.default.valCxt}`, schemaEnv.$async, () => {
@@ -2947,11 +2948,11 @@ function subschemaCode$1(it2, valid2) {
   }
   (0, boolSchema_1$1.boolOrEmptySchema)(it2, valid2);
 }
-function schemaCxtHasRules$1({ schema, self }) {
+function schemaCxtHasRules$1({ schema, self: self2 }) {
   if (typeof schema == "boolean")
     return !schema;
   for (const key in schema)
-    if (self.RULES.all[key])
+    if (self2.RULES.all[key])
       return true;
   return false;
 }
@@ -2980,9 +2981,9 @@ function typeAndKeywords$1(it2, errsCount) {
   schemaKeywords$1(it2, types2, !checkedTypes, errsCount);
 }
 function checkRefsAndKeywords$1(it2) {
-  const { schema, errSchemaPath, opts, self } = it2;
-  if (schema.$ref && opts.ignoreKeywordsWithRef && (0, util_1$Q.schemaHasRulesButRef)(schema, self.RULES)) {
-    self.logger.warn(`$ref: keywords ignored in schema at path "${errSchemaPath}"`);
+  const { schema, errSchemaPath, opts, self: self2 } = it2;
+  if (schema.$ref && opts.ignoreKeywordsWithRef && (0, util_1$Q.schemaHasRulesButRef)(schema, self2.RULES)) {
+    self2.logger.warn(`$ref: keywords ignored in schema at path "${errSchemaPath}"`);
   }
 }
 function checkNoDefault$1(it2) {
@@ -3028,8 +3029,8 @@ function assignEvaluated$1({ gen, evaluated, props, items: items2 }) {
     gen.assign((0, codegen_1$X._)`${evaluated}.items`, items2);
 }
 function schemaKeywords$1(it2, types2, typeErrors, errsCount) {
-  const { gen, schema, data, allErrors, opts, self } = it2;
-  const { RULES } = self;
+  const { gen, schema, data, allErrors, opts, self: self2 } = it2;
+  const { RULES } = self2;
   if (schema.$ref && (opts.ignoreKeywordsWithRef || !(0, util_1$Q.schemaHasRulesButRef)(schema, RULES))) {
     gen.block(() => keywordCode$1(it2, "$ref", RULES.all.$ref.definition));
     return;
@@ -3300,7 +3301,7 @@ let KeywordCxt$1 = class KeywordCxt {
     }
   }
 };
-validate$1.KeywordCxt = KeywordCxt$1;
+validate$2.KeywordCxt = KeywordCxt$1;
 function keywordCode$1(it2, keyword2, def2, ruleType) {
   const cxt = new KeywordCxt$1(it2, def2, keyword2);
   if ("code" in def2) {
@@ -3355,7 +3356,7 @@ function getData$1($data, { dataLevel, dataNames, dataPathArr }) {
     return `Cannot access ${pointerType} ${up} levels up, current level is ${dataLevel}`;
   }
 }
-validate$1.getData = getData$1;
+validate$2.getData = getData$1;
 var validation_error$1 = {};
 Object.defineProperty(validation_error$1, "__esModule", { value: true });
 let ValidationError$1 = class ValidationError extends Error {
@@ -3385,7 +3386,7 @@ const validation_error_1$1 = validation_error$1;
 const names_1$c = names$3;
 const resolve_1$3 = resolve$4;
 const util_1$P = util$1;
-const validate_1$3 = validate$1;
+const validate_1$3 = validate$2;
 let SchemaEnv$1 = class SchemaEnv {
   constructor(env2) {
     var _a;
@@ -3867,7 +3868,7 @@ function recomposeAuthority$1(components, options) {
   }
   return uriTokens.length ? uriTokens.join("") : void 0;
 }
-var utils = {
+var utils$4 = {
   recomposeAuthority: recomposeAuthority$1,
   normalizeComponentEncoding: normalizeComponentEncoding$1,
   removeDotSegments: removeDotSegments$1,
@@ -4014,7 +4015,7 @@ const SCHEMES$1 = {
   "urn:uuid": urnuuid
 };
 var schemes = SCHEMES$1;
-const { normalizeIPv6, normalizeIPv4, removeDotSegments, recomposeAuthority, normalizeComponentEncoding } = utils;
+const { normalizeIPv6, normalizeIPv4, removeDotSegments, recomposeAuthority, normalizeComponentEncoding } = utils$4;
 const SCHEMES = schemes;
 function normalize(uri2, options) {
   if (typeof uri2 === "string") {
@@ -4272,7 +4273,7 @@ uri$3.default = uri$2;
 (function(exports) {
   Object.defineProperty(exports, "__esModule", { value: true });
   exports.CodeGen = exports.Name = exports.nil = exports.stringify = exports.str = exports._ = exports.KeywordCxt = void 0;
-  var validate_12 = validate$1;
+  var validate_12 = validate$2;
   Object.defineProperty(exports, "KeywordCxt", { enumerable: true, get: function() {
     return validate_12.KeywordCxt;
   } });
@@ -4900,11 +4901,11 @@ const def$11 = {
   schemaType: "string",
   code(cxt) {
     const { gen, schema: $ref, it: it2 } = cxt;
-    const { baseId, schemaEnv: env2, validateName, opts, self } = it2;
+    const { baseId, schemaEnv: env2, validateName, opts, self: self2 } = it2;
     const { root } = env2;
     if (($ref === "#" || $ref === "#/") && baseId === root.baseId)
       return callRootRef();
-    const schOrEnv = compile_1$4.resolveRef.call(self, root, baseId, $ref);
+    const schOrEnv = compile_1$4.resolveRef.call(self2, root, baseId, $ref);
     if (schOrEnv === void 0)
       throw new ref_error_1$3.default(it2.opts.uriResolver, baseId, $ref);
     if (schOrEnv instanceof compile_1$4.SchemaEnv)
@@ -5874,7 +5875,7 @@ const def$M = {
 additionalProperties$2.default = def$M;
 var properties$b = {};
 Object.defineProperty(properties$b, "__esModule", { value: true });
-const validate_1$2 = validate$1;
+const validate_1$2 = validate$2;
 const code_1$d = code$2;
 const util_1$C = util$1;
 const additionalProperties_1$3 = additionalProperties$2;
@@ -6239,11 +6240,11 @@ function dynamicAnchor(cxt, anchor) {
 }
 dynamicAnchor$1.dynamicAnchor = dynamicAnchor;
 function _getValidate(cxt) {
-  const { schemaEnv, schema, self } = cxt.it;
+  const { schemaEnv, schema, self: self2 } = cxt.it;
   const { root, baseId, localRefs, meta } = schemaEnv.root;
-  const { schemaId } = self.opts;
+  const { schemaId } = self2.opts;
   const sch = new compile_1$3.SchemaEnv({ schema, schemaId, root, baseId, localRefs, meta });
-  compile_1$3.compileSchema.call(self, sch);
+  compile_1$3.compileSchema.call(self2, sch);
   return (0, ref_1$2.getValidate)(cxt, sch);
 }
 dynamicAnchor$1.default = def$D;
@@ -6480,7 +6481,7 @@ const def$u = {
   error: error$k,
   code(cxt, ruleType) {
     const { gen, data, $data, schema, schemaCode, it: it2 } = cxt;
-    const { opts, errSchemaPath, schemaEnv, self } = it2;
+    const { opts, errSchemaPath, schemaEnv, self: self2 } = it2;
     if (!opts.validateFormats)
       return;
     if ($data)
@@ -6489,7 +6490,7 @@ const def$u = {
       validateFormat();
     function validate$DataFormat() {
       const fmts = gen.scopeValue("formats", {
-        ref: self.formats,
+        ref: self2.formats,
         code: opts.code.formats
       });
       const fDef = gen.const("fDef", (0, codegen_1$x._)`${fmts}[${schemaCode}]`);
@@ -6509,7 +6510,7 @@ const def$u = {
       }
     }
     function validateFormat() {
-      const formatDef = self.formats[schema];
+      const formatDef = self2.formats[schema];
       if (!formatDef) {
         unknownFormat();
         return;
@@ -6521,7 +6522,7 @@ const def$u = {
         cxt.pass(validCondition());
       function unknownFormat() {
         if (opts.strictSchema === false) {
-          self.logger.warn(unknownMsg());
+          self2.logger.warn(unknownMsg());
           return;
         }
         throw new Error(unknownMsg());
@@ -6592,17 +6593,17 @@ const draft2020Vocabularies = [
 ];
 draft2020.default = draft2020Vocabularies;
 var discriminator$1 = {};
-var types$1 = {};
-Object.defineProperty(types$1, "__esModule", { value: true });
-types$1.DiscrError = void 0;
+var types$2 = {};
+Object.defineProperty(types$2, "__esModule", { value: true });
+types$2.DiscrError = void 0;
 var DiscrError$1;
 (function(DiscrError2) {
   DiscrError2["Tag"] = "tag";
   DiscrError2["Mapping"] = "mapping";
-})(DiscrError$1 || (types$1.DiscrError = DiscrError$1 = {}));
+})(DiscrError$1 || (types$2.DiscrError = DiscrError$1 = {}));
 Object.defineProperty(discriminator$1, "__esModule", { value: true });
 const codegen_1$w = codegen$1;
-const types_1$1 = types$1;
+const types_1$1 = types$2;
 const compile_1$2 = compile$1;
 const ref_error_1$2 = ref_error$1;
 const util_1$r = util$1;
@@ -7281,7 +7282,7 @@ jsonSchema202012.default = addMetaSchema2020;
   module.exports.Ajv2020 = Ajv2020;
   Object.defineProperty(exports, "__esModule", { value: true });
   exports.default = Ajv2020;
-  var validate_12 = validate$1;
+  var validate_12 = validate$2;
   Object.defineProperty(exports, "KeywordCxt", { enumerable: true, get: function() {
     return validate_12.KeywordCxt;
   } });
@@ -7517,7 +7518,7 @@ var formats = {};
 var limit = {};
 var ajv = { exports: {} };
 var core$2 = {};
-var validate = {};
+var validate$1 = {};
 var boolSchema = {};
 var errors = {};
 var codegen = {};
@@ -8549,12 +8550,12 @@ function alwaysValidSchema(it2, schema) {
 }
 util.alwaysValidSchema = alwaysValidSchema;
 function checkUnknownRules(it2, schema = it2.schema) {
-  const { opts, self } = it2;
+  const { opts, self: self2 } = it2;
   if (!opts.strictSchema)
     return;
   if (typeof schema === "boolean")
     return;
-  const rules2 = self.RULES.keywords;
+  const rules2 = self2.RULES.keywords;
   for (const key in schema) {
     if (!rules2[key])
       checkStrictMode(it2, `unknown keyword: "${key}"`);
@@ -8673,8 +8674,8 @@ var Type;
 })(Type || (util.Type = Type = {}));
 function getErrorPath(dataProp, dataPropType, jsPropertySyntax) {
   if (dataProp instanceof codegen_1$v.Name) {
-    const isNumber = dataPropType === Type.Num;
-    return jsPropertySyntax ? isNumber ? (0, codegen_1$v._)`"[" + ${dataProp} + "]"` : (0, codegen_1$v._)`"['" + ${dataProp} + "']"` : isNumber ? (0, codegen_1$v._)`"/" + ${dataProp}` : (0, codegen_1$v._)`"/" + ${dataProp}.replace(/~/g, "~0").replace(/\\//g, "~1")`;
+    const isNumber2 = dataPropType === Type.Num;
+    return jsPropertySyntax ? isNumber2 ? (0, codegen_1$v._)`"[" + ${dataProp} + "]"` : (0, codegen_1$v._)`"['" + ${dataProp} + "']"` : isNumber2 ? (0, codegen_1$v._)`"/" + ${dataProp}` : (0, codegen_1$v._)`"/" + ${dataProp}.replace(/~/g, "~0").replace(/\\//g, "~1")`;
   }
   return jsPropertySyntax ? (0, codegen_1$v.getProperty)(dataProp).toString() : "/" + escapeJsonPointer(dataProp);
 }
@@ -8911,8 +8912,8 @@ rules.getRules = getRules;
 var applicability = {};
 Object.defineProperty(applicability, "__esModule", { value: true });
 applicability.shouldUseRule = applicability.shouldUseGroup = applicability.schemaHasRulesForType = void 0;
-function schemaHasRulesForType({ schema, self }, type2) {
-  const group = self.RULES.types[type2];
+function schemaHasRulesForType({ schema, self: self2 }, type2) {
+  const group = self2.RULES.types[type2];
   return group && group !== true && shouldUseGroup(schema, group);
 }
 applicability.schemaHasRulesForType = schemaHasRulesForType;
@@ -9352,7 +9353,7 @@ function validSchemaType(schema, schemaType, allowUndefined = false) {
   return !schemaType.length || schemaType.some((st2) => st2 === "array" ? Array.isArray(schema) : st2 === "object" ? schema && typeof schema == "object" && !Array.isArray(schema) : typeof schema == st2 || allowUndefined && typeof schema == "undefined");
 }
 keyword.validSchemaType = validSchemaType;
-function validateKeywordUsage({ schema, opts, self, errSchemaPath }, def2, keyword2) {
+function validateKeywordUsage({ schema, opts, self: self2, errSchemaPath }, def2, keyword2) {
   if (Array.isArray(def2.keyword) ? !def2.keyword.includes(keyword2) : def2.keyword !== keyword2) {
     throw new Error("ajv implementation error");
   }
@@ -9363,9 +9364,9 @@ function validateKeywordUsage({ schema, opts, self, errSchemaPath }, def2, keywo
   if (def2.validateSchema) {
     const valid2 = def2.validateSchema(schema[keyword2]);
     if (!valid2) {
-      const msg = `keyword "${keyword2}" value is invalid at path "${errSchemaPath}": ` + self.errorsText(def2.validateSchema.errors);
+      const msg = `keyword "${keyword2}" value is invalid at path "${errSchemaPath}": ` + self2.errorsText(def2.validateSchema.errors);
       if (opts.validateSchema === "log")
-        self.logger.error(msg);
+        self2.logger.error(msg);
       else
         throw new Error(msg);
     }
@@ -9682,8 +9683,8 @@ function getSchemaRefs(schema, baseId) {
   }
 }
 resolve$1.getSchemaRefs = getSchemaRefs;
-Object.defineProperty(validate, "__esModule", { value: true });
-validate.getData = validate.KeywordCxt = validate.validateFunctionCode = void 0;
+Object.defineProperty(validate$1, "__esModule", { value: true });
+validate$1.getData = validate$1.KeywordCxt = validate$1.validateFunctionCode = void 0;
 const boolSchema_1 = boolSchema;
 const dataType_1$1 = dataType;
 const applicability_1 = applicability;
@@ -9706,7 +9707,7 @@ function validateFunctionCode(it2) {
   }
   validateFunction(it2, () => (0, boolSchema_1.topBoolOrEmptySchema)(it2));
 }
-validate.validateFunctionCode = validateFunctionCode;
+validate$1.validateFunctionCode = validateFunctionCode;
 function validateFunction({ gen, validateName, schema, schemaEnv, opts }, body) {
   if (opts.code.es5) {
     gen.func(validateName, (0, codegen_1$n._)`${names_1$3.default.data}, ${names_1$3.default.valCxt}`, schemaEnv.$async, () => {
@@ -9773,11 +9774,11 @@ function subschemaCode(it2, valid2) {
   }
   (0, boolSchema_1.boolOrEmptySchema)(it2, valid2);
 }
-function schemaCxtHasRules({ schema, self }) {
+function schemaCxtHasRules({ schema, self: self2 }) {
   if (typeof schema == "boolean")
     return !schema;
   for (const key in schema)
-    if (self.RULES.all[key])
+    if (self2.RULES.all[key])
       return true;
   return false;
 }
@@ -9806,9 +9807,9 @@ function typeAndKeywords(it2, errsCount) {
   schemaKeywords(it2, types2, !checkedTypes, errsCount);
 }
 function checkRefsAndKeywords(it2) {
-  const { schema, errSchemaPath, opts, self } = it2;
-  if (schema.$ref && opts.ignoreKeywordsWithRef && (0, util_1$l.schemaHasRulesButRef)(schema, self.RULES)) {
-    self.logger.warn(`$ref: keywords ignored in schema at path "${errSchemaPath}"`);
+  const { schema, errSchemaPath, opts, self: self2 } = it2;
+  if (schema.$ref && opts.ignoreKeywordsWithRef && (0, util_1$l.schemaHasRulesButRef)(schema, self2.RULES)) {
+    self2.logger.warn(`$ref: keywords ignored in schema at path "${errSchemaPath}"`);
   }
 }
 function checkNoDefault(it2) {
@@ -9854,8 +9855,8 @@ function assignEvaluated({ gen, evaluated, props, items: items2 }) {
     gen.assign((0, codegen_1$n._)`${evaluated}.items`, items2);
 }
 function schemaKeywords(it2, types2, typeErrors, errsCount) {
-  const { gen, schema, data, allErrors, opts, self } = it2;
-  const { RULES } = self;
+  const { gen, schema, data, allErrors, opts, self: self2 } = it2;
+  const { RULES } = self2;
   if (schema.$ref && (opts.ignoreKeywordsWithRef || !(0, util_1$l.schemaHasRulesButRef)(schema, RULES))) {
     gen.block(() => keywordCode(it2, "$ref", RULES.all.$ref.definition));
     return;
@@ -10126,7 +10127,7 @@ class KeywordCxt2 {
     }
   }
 }
-validate.KeywordCxt = KeywordCxt2;
+validate$1.KeywordCxt = KeywordCxt2;
 function keywordCode(it2, keyword2, def2, ruleType) {
   const cxt = new KeywordCxt2(it2, def2, keyword2);
   if ("code" in def2) {
@@ -10181,7 +10182,7 @@ function getData($data, { dataLevel, dataNames, dataPathArr }) {
     return `Cannot access ${pointerType} ${up} levels up, current level is ${dataLevel}`;
   }
 }
-validate.getData = getData;
+validate$1.getData = getData;
 var validation_error = {};
 Object.defineProperty(validation_error, "__esModule", { value: true });
 class ValidationError2 extends Error {
@@ -10211,7 +10212,7 @@ const validation_error_1 = validation_error;
 const names_1$2 = names$1;
 const resolve_1 = resolve$1;
 const util_1$k = util;
-const validate_1$1 = validate;
+const validate_1$1 = validate$1;
 class SchemaEnv2 {
   constructor(env2) {
     var _a;
@@ -10457,7 +10458,7 @@ uri$1.default = uri;
 (function(exports) {
   Object.defineProperty(exports, "__esModule", { value: true });
   exports.CodeGen = exports.Name = exports.nil = exports.stringify = exports.str = exports._ = exports.KeywordCxt = void 0;
-  var validate_12 = validate;
+  var validate_12 = validate$1;
   Object.defineProperty(exports, "KeywordCxt", { enumerable: true, get: function() {
     return validate_12.KeywordCxt;
   } });
@@ -11085,11 +11086,11 @@ const def$r = {
   schemaType: "string",
   code(cxt) {
     const { gen, schema: $ref, it: it2 } = cxt;
-    const { baseId, schemaEnv: env2, validateName, opts, self } = it2;
+    const { baseId, schemaEnv: env2, validateName, opts, self: self2 } = it2;
     const { root } = env2;
     if (($ref === "#" || $ref === "#/") && baseId === root.baseId)
       return callRootRef();
-    const schOrEnv = compile_1$1.resolveRef.call(self, root, baseId, $ref);
+    const schOrEnv = compile_1$1.resolveRef.call(self2, root, baseId, $ref);
     if (schOrEnv === void 0)
       throw new ref_error_1$1.default(it2.opts.uriResolver, baseId, $ref);
     if (schOrEnv instanceof compile_1$1.SchemaEnv)
@@ -12059,7 +12060,7 @@ const def$a = {
 additionalProperties.default = def$a;
 var properties$1 = {};
 Object.defineProperty(properties$1, "__esModule", { value: true });
-const validate_1 = validate;
+const validate_1 = validate$1;
 const code_1$2 = code;
 const util_1$7 = util;
 const additionalProperties_1$1 = additionalProperties;
@@ -12418,7 +12419,7 @@ const def$1 = {
   error: error$1,
   code(cxt, ruleType) {
     const { gen, data, $data, schema, schemaCode, it: it2 } = cxt;
-    const { opts, errSchemaPath, schemaEnv, self } = it2;
+    const { opts, errSchemaPath, schemaEnv, self: self2 } = it2;
     if (!opts.validateFormats)
       return;
     if ($data)
@@ -12427,7 +12428,7 @@ const def$1 = {
       validateFormat();
     function validate$DataFormat() {
       const fmts = gen.scopeValue("formats", {
-        ref: self.formats,
+        ref: self2.formats,
         code: opts.code.formats
       });
       const fDef = gen.const("fDef", (0, codegen_1$1._)`${fmts}[${schemaCode}]`);
@@ -12447,7 +12448,7 @@ const def$1 = {
       }
     }
     function validateFormat() {
-      const formatDef = self.formats[schema];
+      const formatDef = self2.formats[schema];
       if (!formatDef) {
         unknownFormat();
         return;
@@ -12459,7 +12460,7 @@ const def$1 = {
         cxt.pass(validCondition());
       function unknownFormat() {
         if (opts.strictSchema === false) {
-          self.logger.warn(unknownMsg());
+          self2.logger.warn(unknownMsg());
           return;
         }
         throw new Error(unknownMsg());
@@ -12524,17 +12525,17 @@ const draft7Vocabularies = [
 ];
 draft7.default = draft7Vocabularies;
 var discriminator = {};
-var types = {};
-Object.defineProperty(types, "__esModule", { value: true });
-types.DiscrError = void 0;
+var types$1 = {};
+Object.defineProperty(types$1, "__esModule", { value: true });
+types$1.DiscrError = void 0;
 var DiscrError;
 (function(DiscrError2) {
   DiscrError2["Tag"] = "tag";
   DiscrError2["Mapping"] = "mapping";
-})(DiscrError || (types.DiscrError = DiscrError = {}));
+})(DiscrError || (types$1.DiscrError = DiscrError = {}));
 Object.defineProperty(discriminator, "__esModule", { value: true });
 const codegen_1 = codegen;
-const types_1 = types;
+const types_1 = types$1;
 const compile_1 = compile;
 const ref_error_1 = ref_error;
 const util_1 = util;
@@ -12910,7 +12911,7 @@ const require$$3 = {
   module.exports.Ajv = Ajv;
   Object.defineProperty(exports, "__esModule", { value: true });
   exports.default = Ajv;
-  var validate_12 = validate;
+  var validate_12 = validate$1;
   Object.defineProperty(exports, "KeywordCxt", { enumerable: true, get: function() {
     return validate_12.KeywordCxt;
   } });
@@ -12967,17 +12968,17 @@ var ajvExports = ajv.exports;
     error: error2,
     code(cxt) {
       const { gen, data, schemaCode, keyword: keyword2, it: it2 } = cxt;
-      const { opts, self } = it2;
+      const { opts, self: self2 } = it2;
       if (!opts.validateFormats)
         return;
-      const fCxt = new ajv_1.KeywordCxt(it2, self.RULES.all.format.definition, "format");
+      const fCxt = new ajv_1.KeywordCxt(it2, self2.RULES.all.format.definition, "format");
       if (fCxt.$data)
         validate$DataFormat();
       else
         validateFormat();
       function validate$DataFormat() {
         const fmts = gen.scopeValue("formats", {
-          ref: self.formats,
+          ref: self2.formats,
           code: opts.code.formats
         });
         const fmt = gen.const("fmt", (0, codegen_12._)`${fmts}[${fCxt.schemaCode}]`);
@@ -12985,7 +12986,7 @@ var ajvExports = ajv.exports;
       }
       function validateFormat() {
         const format2 = fCxt.schema;
-        const fmtDef = self.formats[format2];
+        const fmtDef = self2.formats[format2];
         if (!fmtDef || fmtDef === true)
           return;
         if (typeof fmtDef != "object" || fmtDef instanceof RegExp || typeof fmtDef.compare != "function") {
@@ -13174,7 +13175,7 @@ const RELEASE_TYPES = [
   "prepatch",
   "prerelease"
 ];
-var constants$1 = {
+var constants$2 = {
   MAX_LENGTH: MAX_LENGTH$1,
   MAX_SAFE_COMPONENT_LENGTH,
   MAX_SAFE_BUILD_LENGTH,
@@ -13192,7 +13193,7 @@ var debug_1 = debug$1;
     MAX_SAFE_COMPONENT_LENGTH: MAX_SAFE_COMPONENT_LENGTH2,
     MAX_SAFE_BUILD_LENGTH: MAX_SAFE_BUILD_LENGTH2,
     MAX_LENGTH: MAX_LENGTH2
-  } = constants$1;
+  } = constants$2;
   const debug2 = debug_1;
   exports = module.exports = {};
   const re2 = exports.re = [];
@@ -13297,7 +13298,7 @@ var identifiers$1 = {
   rcompareIdentifiers
 };
 const debug = debug_1;
-const { MAX_LENGTH, MAX_SAFE_INTEGER } = constants$1;
+const { MAX_LENGTH, MAX_SAFE_INTEGER } = constants$2;
 const { safeRe: re$2, t: t$1 } = reExports;
 const parseOptions = parseOptions_1;
 const { compareIdentifiers } = identifiers$1;
@@ -13940,7 +13941,7 @@ function requireRange() {
     tildeTrimReplace,
     caretTrimReplace
   } = reExports;
-  const { FLAG_INCLUDE_PRERELEASE, FLAG_LOOSE } = constants$1;
+  const { FLAG_INCLUDE_PRERELEASE, FLAG_LOOSE } = constants$2;
   const isNullSet = (c) => c.value === "<0.0.0-0";
   const isAny = (c) => c.value === "";
   const isSatisfiable = (comparators, options) => {
@@ -14661,7 +14662,7 @@ const lowerLT = (a, b2, options) => {
 };
 var subset_1 = subset$1;
 const internalRe = reExports;
-const constants = constants$1;
+const constants$1 = constants$2;
 const SemVer2 = semver$2;
 const identifiers = identifiers$1;
 const parse = parse_1;
@@ -14743,8 +14744,8 @@ var semver = {
   re: internalRe.re,
   src: internalRe.src,
   tokens: internalRe.t,
-  SEMVER_SPEC_VERSION: constants.SEMVER_SPEC_VERSION,
-  RELEASE_TYPES: constants.RELEASE_TYPES,
+  SEMVER_SPEC_VERSION: constants$1.SEMVER_SPEC_VERSION,
+  RELEASE_TYPES: constants$1.RELEASE_TYPES,
   compareIdentifiers: identifiers.compareIdentifiers,
   rcompareIdentifiers: identifiers.rcompareIdentifiers
 };
@@ -14891,7 +14892,7 @@ class Conf {
     this.events = new EventTarget();
     __privateSet(this, _encryptionKey, options.encryptionKey);
     const fileExtension = options.fileExtension ? `.${options.fileExtension}` : "";
-    this.path = path.resolve(options.cwd, `${options.configName ?? "config"}${fileExtension}`);
+    this.path = path$1.resolve(options.cwd, `${options.configName ?? "config"}${fileExtension}`);
     const fileStore = this.store;
     const store2 = Object.assign(createPlainObject(), options.defaults, fileStore);
     if (options.migrations) {
@@ -15094,7 +15095,7 @@ class Conf {
     throw new Error("Config schema violation: " + errors2.join("; "));
   }
   _ensureDirectory() {
-    fs.mkdirSync(path.dirname(this.path), { recursive: true });
+    fs.mkdirSync(path$1.dirname(this.path), { recursive: true });
   }
   _write(value) {
     let data = this._serialize(value);
@@ -15247,7 +15248,7 @@ class ElectronStore extends Conf {
     };
     options.projectVersion || (options.projectVersion = appVersion);
     if (options.cwd) {
-      options.cwd = path.isAbsolute(options.cwd) ? options.cwd : path.join(defaultCwd, options.cwd);
+      options.cwd = path$1.isAbsolute(options.cwd) ? options.cwd : path$1.join(defaultCwd, options.cwd);
     } else {
       options.cwd = defaultCwd;
     }
@@ -15265,6 +15266,990 @@ class ElectronStore extends Conf {
     }
   }
 }
+var converter = {};
+var constants = {};
+Object.defineProperty(constants, "__esModule", { value: true });
+constants.excelBOM = constants.defaultCsv2JsonOptions = constants.defaultJson2CsvOptions = constants.errors = void 0;
+constants.errors = {
+  optionsRequired: "Options were not passed and are required.",
+  json2csv: {
+    cannotCallOn: "Cannot call json2csv on",
+    dataCheckFailure: "Data provided was not an array of documents.",
+    notSameSchema: "Not all documents have the same schema."
+  },
+  csv2json: {
+    cannotCallOn: "Cannot call csv2json on",
+    dataCheckFailure: "CSV is not a string."
+  }
+};
+constants.defaultJson2CsvOptions = {
+  arrayIndexesAsKeys: false,
+  checkSchemaDifferences: false,
+  delimiter: {
+    field: ",",
+    wrap: '"',
+    eol: "\n"
+  },
+  emptyFieldValue: void 0,
+  escapeHeaderNestedDots: true,
+  excelBOM: false,
+  excludeKeys: [],
+  expandNestedObjects: true,
+  expandArrayObjects: false,
+  prependHeader: true,
+  preventCsvInjection: false,
+  sortHeader: false,
+  trimFieldValues: false,
+  trimHeaderFields: false,
+  unwindArrays: false,
+  useDateIso8601Format: false,
+  useLocaleFormat: false,
+  wrapBooleans: false
+};
+constants.defaultCsv2JsonOptions = {
+  delimiter: {
+    field: ",",
+    wrap: '"',
+    eol: "\n"
+  },
+  excelBOM: false,
+  preventCsvInjection: false,
+  trimFieldValues: false,
+  trimHeaderFields: false
+};
+constants.excelBOM = "\uFEFF";
+var json2csv$1 = {};
+var path = {};
+/**
+ * @license MIT
+ * doc-path <https://github.com/mrodrig/doc-path>
+ * Copyright (c) 2015-present, Michael Rodrigues.
+ */
+Object.defineProperty(path, "__esModule", { value: true });
+path.setPath = path.evaluatePath = void 0;
+function evaluatePath(obj, kp) {
+  if (!obj) {
+    return null;
+  }
+  const { dotIndex, key, remaining } = state(kp);
+  const kpVal = typeof obj === "object" && kp in obj ? obj[kp] : void 0;
+  const keyVal = typeof obj === "object" && key in obj ? obj[key] : void 0;
+  if (dotIndex >= 0 && typeof obj === "object" && !(kp in obj)) {
+    const { key: nextKey } = state(remaining);
+    const nextKeyAsInt = parseInt(nextKey);
+    if (Array.isArray(keyVal) && isNaN(nextKeyAsInt)) {
+      return keyVal.map((doc) => evaluatePath(doc, remaining));
+    }
+    return evaluatePath(keyVal, remaining);
+  } else if (Array.isArray(obj)) {
+    const keyAsInt = parseInt(key);
+    if (kp === key && dotIndex === -1 && !isNaN(keyAsInt)) {
+      return keyVal;
+    }
+    return obj.map((doc) => evaluatePath(doc, kp));
+  } else if (dotIndex >= 0 && kp !== key && typeof obj === "object" && key in obj) {
+    return evaluatePath(keyVal, remaining);
+  } else if (dotIndex === -1 && typeof obj === "object" && key in obj && !(kp in obj)) {
+    return keyVal;
+  }
+  return kpVal;
+}
+path.evaluatePath = evaluatePath;
+function setPath(obj, kp, v) {
+  if (!obj) {
+    throw new Error("No object was provided.");
+  } else if (!kp) {
+    throw new Error("No keyPath was provided.");
+  }
+  return _sp(obj, kp, v);
+}
+path.setPath = setPath;
+function _sp(obj, kp, v) {
+  const { dotIndex, key, remaining } = state(kp);
+  if (kp.startsWith("__proto__") || kp.startsWith("constructor") || kp.startsWith("prototype")) {
+    return obj;
+  }
+  if (dotIndex >= 0) {
+    const keyAsInt = parseInt(key);
+    if (typeof obj === "object" && obj !== null && !(key in obj) && Array.isArray(obj) && !isNaN(keyAsInt)) {
+      obj[key] = obj[key] ?? {};
+      _sp(obj[key], remaining, v);
+      return obj;
+    } else if (typeof obj === "object" && obj !== null && !(key in obj) && Array.isArray(obj)) {
+      obj.forEach((doc) => _sp(doc, kp, v));
+      return obj;
+    } else if (typeof obj === "object" && obj !== null && !(key in obj) && !Array.isArray(obj)) {
+      const { key: nextKey } = state(remaining);
+      const nextKeyAsInt = parseInt(nextKey);
+      if (!isNaN(nextKeyAsInt)) {
+        obj[key] = [];
+      } else if (remaining === "") {
+        obj[kp] = v;
+        return obj;
+      } else {
+        obj[key] = {};
+      }
+    }
+    _sp(obj[key], remaining, v);
+  } else if (Array.isArray(obj)) {
+    const keyAsInt = parseInt(key);
+    if (kp === key && dotIndex === -1 && !isNaN(keyAsInt)) {
+      obj[key] = v;
+      return obj;
+    }
+    obj.forEach((doc) => _sp(doc, remaining, v));
+    return obj;
+  } else {
+    obj[key] = v;
+  }
+  return obj;
+}
+function state(kp) {
+  const dotIndex = findFirstNonEscapedDotIndex(kp);
+  return {
+    dotIndex,
+    key: kp.slice(0, dotIndex >= 0 ? dotIndex : void 0).replace(/\\./g, "."),
+    remaining: kp.slice(dotIndex + 1)
+  };
+}
+function findFirstNonEscapedDotIndex(kp) {
+  for (let i = 0; i < kp.length; i++) {
+    const previousChar = i > 0 ? kp[i - 1] : "", currentChar = kp[i];
+    if (currentChar === "." && previousChar !== "\\")
+      return i;
+  }
+  return -1;
+}
+var deeks = {};
+var utils$3 = {};
+Object.defineProperty(utils$3, "__esModule", { value: true });
+utils$3.isDocumentToRecurOn = utils$3.flatten = utils$3.unique = void 0;
+function unique$1(array) {
+  return [...new Set(array)];
+}
+utils$3.unique = unique$1;
+function flatten$1(array) {
+  return [].concat(...array);
+}
+utils$3.flatten = flatten$1;
+function isDocumentToRecurOn(val) {
+  return typeof val === "object" && val !== null && !Array.isArray(val) && Object.keys(val).length;
+}
+utils$3.isDocumentToRecurOn = isDocumentToRecurOn;
+var types = {};
+Object.defineProperty(types, "__esModule", { value: true });
+(function(exports) {
+  var __createBinding2 = commonjsGlobal && commonjsGlobal.__createBinding || (Object.create ? function(o, m, k2, k22) {
+    if (k22 === void 0) k22 = k2;
+    var desc = Object.getOwnPropertyDescriptor(m, k2);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() {
+        return m[k2];
+      } };
+    }
+    Object.defineProperty(o, k22, desc);
+  } : function(o, m, k2, k22) {
+    if (k22 === void 0) k22 = k2;
+    o[k22] = m[k2];
+  });
+  var __setModuleDefault2 = commonjsGlobal && commonjsGlobal.__setModuleDefault || (Object.create ? function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+  } : function(o, v) {
+    o["default"] = v;
+  });
+  var __importStar2 = commonjsGlobal && commonjsGlobal.__importStar || function(mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) {
+      for (var k2 in mod) if (k2 !== "default" && Object.prototype.hasOwnProperty.call(mod, k2)) __createBinding2(result, mod, k2);
+    }
+    __setModuleDefault2(result, mod);
+    return result;
+  };
+  var __exportStar = commonjsGlobal && commonjsGlobal.__exportStar || function(m, exports2) {
+    for (var p2 in m) if (p2 !== "default" && !Object.prototype.hasOwnProperty.call(exports2, p2)) __createBinding2(exports2, m, p2);
+  };
+  Object.defineProperty(exports, "__esModule", { value: true });
+  exports.deepKeysFromList = exports.deepKeys = void 0;
+  const utils2 = __importStar2(utils$3);
+  __exportStar(types, exports);
+  function deepKeys(object, options) {
+    const parsedOptions = mergeOptions(options);
+    if (typeof object === "object" && object !== null) {
+      return generateDeepKeysList("", object, parsedOptions);
+    }
+    return [];
+  }
+  exports.deepKeys = deepKeys;
+  function deepKeysFromList(list, options) {
+    const parsedOptions = mergeOptions(options);
+    return list.map((document) => {
+      if (typeof document === "object" && document !== null) {
+        return deepKeys(document, parsedOptions);
+      }
+      return [];
+    });
+  }
+  exports.deepKeysFromList = deepKeysFromList;
+  function generateDeepKeysList(heading, data, options) {
+    const keys = Object.keys(data).map((currentKey) => {
+      const keyName = buildKeyName(heading, escapeNestedDotsIfSpecified(currentKey, options));
+      if (options.expandNestedObjects && utils2.isDocumentToRecurOn(data[currentKey]) || options.arrayIndexesAsKeys && Array.isArray(data[currentKey]) && data[currentKey].length) {
+        return generateDeepKeysList(keyName, data[currentKey], options);
+      } else if (options.expandArrayObjects && Array.isArray(data[currentKey])) {
+        return processArrayKeys(data[currentKey], keyName, options);
+      } else if (options.ignoreEmptyArrays && Array.isArray(data[currentKey]) && !data[currentKey].length) {
+        return [];
+      }
+      return keyName;
+    });
+    return utils2.flatten(keys);
+  }
+  function processArrayKeys(subArray, currentKeyPath, options) {
+    let subArrayKeys = deepKeysFromList(subArray, options);
+    if (!subArray.length) {
+      return options.ignoreEmptyArraysWhenExpanding ? [] : [currentKeyPath];
+    } else if (subArray.length && utils2.flatten(subArrayKeys).length === 0) {
+      return [currentKeyPath];
+    } else {
+      subArrayKeys = subArrayKeys.map((schemaKeys) => {
+        if (Array.isArray(schemaKeys) && schemaKeys.length === 0) {
+          return [currentKeyPath];
+        }
+        return schemaKeys.map((subKey) => buildKeyName(currentKeyPath, escapeNestedDotsIfSpecified(subKey, options)));
+      });
+      return utils2.unique(utils2.flatten(subArrayKeys));
+    }
+  }
+  function escapeNestedDotsIfSpecified(key, options) {
+    if (options.escapeNestedDots) {
+      return key.replace(/\./g, "\\.");
+    }
+    return key;
+  }
+  function buildKeyName(upperKeyName, currentKeyName) {
+    if (upperKeyName) {
+      return upperKeyName + "." + currentKeyName;
+    }
+    return currentKeyName;
+  }
+  function mergeOptions(options) {
+    return {
+      arrayIndexesAsKeys: false,
+      expandNestedObjects: true,
+      expandArrayObjects: false,
+      ignoreEmptyArraysWhenExpanding: false,
+      escapeNestedDots: false,
+      ignoreEmptyArrays: false,
+      ...options ?? {}
+    };
+  }
+})(deeks);
+var utils$2 = {};
+Object.defineProperty(utils$2, "__esModule", { value: true });
+utils$2.isInvalid = utils$2.flatten = utils$2.unique = utils$2.arrayDifference = utils$2.isError = utils$2.isUndefined = utils$2.isNull = utils$2.isObject = utils$2.isString = utils$2.isNumber = utils$2.unwind = utils$2.getNCharacters = utils$2.removeEmptyFields = utils$2.isEmptyField = utils$2.computeSchemaDifferences = utils$2.isDateRepresentation = utils$2.isStringRepresentation = utils$2.deepCopy = utils$2.validate = utils$2.buildC2JOptions = utils$2.buildJ2COptions = void 0;
+const doc_path_1$2 = path;
+const constants_1$3 = constants;
+const dateStringRegex = /\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}.\d{3}Z/, MAX_ARRAY_LENGTH = 1e5;
+function buildJ2COptions(opts) {
+  var _a, _b, _c;
+  return {
+    ...constants_1$3.defaultJson2CsvOptions,
+    ...opts,
+    delimiter: {
+      field: ((_a = opts == null ? void 0 : opts.delimiter) == null ? void 0 : _a.field) ?? constants_1$3.defaultJson2CsvOptions.delimiter.field,
+      wrap: ((_b = opts == null ? void 0 : opts.delimiter) == null ? void 0 : _b.wrap) || constants_1$3.defaultJson2CsvOptions.delimiter.wrap,
+      eol: ((_c = opts == null ? void 0 : opts.delimiter) == null ? void 0 : _c.eol) || constants_1$3.defaultJson2CsvOptions.delimiter.eol
+    },
+    fieldTitleMap: /* @__PURE__ */ Object.create({})
+  };
+}
+utils$2.buildJ2COptions = buildJ2COptions;
+function buildC2JOptions(opts) {
+  var _a, _b, _c;
+  return {
+    ...constants_1$3.defaultCsv2JsonOptions,
+    ...opts,
+    delimiter: {
+      field: ((_a = opts == null ? void 0 : opts.delimiter) == null ? void 0 : _a.field) ?? constants_1$3.defaultCsv2JsonOptions.delimiter.field,
+      wrap: ((_b = opts == null ? void 0 : opts.delimiter) == null ? void 0 : _b.wrap) || constants_1$3.defaultCsv2JsonOptions.delimiter.wrap,
+      eol: ((_c = opts == null ? void 0 : opts.delimiter) == null ? void 0 : _c.eol) || constants_1$3.defaultCsv2JsonOptions.delimiter.eol
+    }
+  };
+}
+utils$2.buildC2JOptions = buildC2JOptions;
+function validate(data, validationFn, errorMessages) {
+  if (!data)
+    throw new Error(`${errorMessages.cannotCallOn} ${data}.`);
+  if (!validationFn(data))
+    throw new Error(errorMessages.dataCheckFailure);
+  return true;
+}
+utils$2.validate = validate;
+function deepCopy(obj) {
+  return JSON.parse(JSON.stringify(obj));
+}
+utils$2.deepCopy = deepCopy;
+function isStringRepresentation(fieldValue, options) {
+  const firstChar = fieldValue[0], lastIndex = fieldValue.length - 1, lastChar = fieldValue[lastIndex];
+  return firstChar === options.delimiter.wrap && lastChar === options.delimiter.wrap;
+}
+utils$2.isStringRepresentation = isStringRepresentation;
+function isDateRepresentation(fieldValue) {
+  return dateStringRegex.test(fieldValue);
+}
+utils$2.isDateRepresentation = isDateRepresentation;
+function computeSchemaDifferences(schemaA, schemaB) {
+  return arrayDifference(schemaA, schemaB).concat(arrayDifference(schemaB, schemaA));
+}
+utils$2.computeSchemaDifferences = computeSchemaDifferences;
+function isEmptyField(fieldValue) {
+  return isUndefined(fieldValue) || isNull(fieldValue) || fieldValue === "";
+}
+utils$2.isEmptyField = isEmptyField;
+function removeEmptyFields(fields) {
+  return fields.filter((field) => !isEmptyField(field));
+}
+utils$2.removeEmptyFields = removeEmptyFields;
+function getNCharacters(str, start, n) {
+  return str.substring(start, start + n);
+}
+utils$2.getNCharacters = getNCharacters;
+function unwindItem(accumulator, item, fieldPath) {
+  const valueToUnwind = (0, doc_path_1$2.evaluatePath)(item, fieldPath);
+  let cloned = deepCopy(item);
+  if (Array.isArray(valueToUnwind) && valueToUnwind.length) {
+    valueToUnwind.forEach((val) => {
+      cloned = deepCopy(item);
+      accumulator.push((0, doc_path_1$2.setPath)(cloned, fieldPath, val));
+    });
+  } else if (Array.isArray(valueToUnwind) && valueToUnwind.length === 0) {
+    (0, doc_path_1$2.setPath)(cloned, fieldPath, "");
+    accumulator.push(cloned);
+  } else {
+    accumulator.push(cloned);
+  }
+}
+function unwind(array, field) {
+  const result = [];
+  array.forEach((item) => {
+    unwindItem(result, item, field);
+  });
+  return result;
+}
+utils$2.unwind = unwind;
+function isNumber(value) {
+  return !isNaN(Number(value));
+}
+utils$2.isNumber = isNumber;
+function isString(value) {
+  return typeof value === "string";
+}
+utils$2.isString = isString;
+function isObject(value) {
+  return typeof value === "object";
+}
+utils$2.isObject = isObject;
+function isNull(value) {
+  return value === null;
+}
+utils$2.isNull = isNull;
+function isUndefined(value) {
+  return typeof value === "undefined";
+}
+utils$2.isUndefined = isUndefined;
+function isError(value) {
+  return Object.prototype.toString.call(value) === "[object Error]";
+}
+utils$2.isError = isError;
+function arrayDifference(a, b2) {
+  return a.filter((x2) => !b2.includes(x2));
+}
+utils$2.arrayDifference = arrayDifference;
+function unique(array) {
+  return [...new Set(array)];
+}
+utils$2.unique = unique;
+function flatten(array) {
+  if (array.flat) {
+    return array.flat();
+  }
+  if (array.length > MAX_ARRAY_LENGTH) {
+    let safeArray = [];
+    for (let a = 0; a < array.length; a += MAX_ARRAY_LENGTH) {
+      safeArray = safeArray.concat(...array.slice(a, a + MAX_ARRAY_LENGTH));
+    }
+    return safeArray;
+  }
+  return array.reduce((accumulator, value) => accumulator.concat(value), []);
+}
+utils$2.flatten = flatten;
+function isInvalid(parsedJson) {
+  return parsedJson === Infinity || parsedJson === -Infinity;
+}
+utils$2.isInvalid = isInvalid;
+var __createBinding$1 = commonjsGlobal && commonjsGlobal.__createBinding || (Object.create ? function(o, m, k2, k22) {
+  if (k22 === void 0) k22 = k2;
+  var desc = Object.getOwnPropertyDescriptor(m, k2);
+  if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+    desc = { enumerable: true, get: function() {
+      return m[k2];
+    } };
+  }
+  Object.defineProperty(o, k22, desc);
+} : function(o, m, k2, k22) {
+  if (k22 === void 0) k22 = k2;
+  o[k22] = m[k2];
+});
+var __setModuleDefault$1 = commonjsGlobal && commonjsGlobal.__setModuleDefault || (Object.create ? function(o, v) {
+  Object.defineProperty(o, "default", { enumerable: true, value: v });
+} : function(o, v) {
+  o["default"] = v;
+});
+var __importStar$1 = commonjsGlobal && commonjsGlobal.__importStar || function(mod) {
+  if (mod && mod.__esModule) return mod;
+  var result = {};
+  if (mod != null) {
+    for (var k2 in mod) if (k2 !== "default" && Object.prototype.hasOwnProperty.call(mod, k2)) __createBinding$1(result, mod, k2);
+  }
+  __setModuleDefault$1(result, mod);
+  return result;
+};
+Object.defineProperty(json2csv$1, "__esModule", { value: true });
+json2csv$1.Json2Csv = void 0;
+const doc_path_1$1 = path;
+const deeks_1 = deeks;
+const constants_1$2 = constants;
+const utils$1 = __importStar$1(utils$2);
+const Json2Csv = function(options) {
+  const wrapDelimiterCheckRegex = new RegExp(options.delimiter.wrap, "g"), crlfSearchRegex = /\r?\n|\r/, customValueParser = options.parseValue && typeof options.parseValue === "function" ? options.parseValue : null, expandingWithoutUnwinding = options.expandArrayObjects && !options.unwindArrays, deeksOptions = {
+    arrayIndexesAsKeys: options.arrayIndexesAsKeys,
+    expandNestedObjects: options.expandNestedObjects,
+    expandArrayObjects: expandingWithoutUnwinding,
+    ignoreEmptyArraysWhenExpanding: expandingWithoutUnwinding,
+    escapeNestedDots: true
+  };
+  function getFieldNameList(data) {
+    return (0, deeks_1.deepKeysFromList)(data, deeksOptions);
+  }
+  function processSchemas(documentSchemas) {
+    if (documentSchemas.length === 0) {
+      return [];
+    }
+    if (options.checkSchemaDifferences) {
+      return checkSchemaDifferences(documentSchemas);
+    } else {
+      const uniqueFieldNames = utils$1.unique(utils$1.flatten(documentSchemas));
+      return uniqueFieldNames;
+    }
+  }
+  function checkSchemaDifferences(documentSchemas) {
+    const firstDocSchema = documentSchemas[0], restOfDocumentSchemas = documentSchemas.slice(1), schemaDifferences = computeNumberOfSchemaDifferences(firstDocSchema, restOfDocumentSchemas);
+    if (schemaDifferences) {
+      throw new Error(constants_1$2.errors.json2csv.notSameSchema);
+    }
+    return firstDocSchema;
+  }
+  function computeNumberOfSchemaDifferences(firstDocSchema, restOfDocumentSchemas) {
+    return restOfDocumentSchemas.reduce((schemaDifferences, documentSchema) => {
+      const numberOfDifferences = utils$1.computeSchemaDifferences(firstDocSchema, documentSchema).length;
+      return numberOfDifferences > 0 ? schemaDifferences + 1 : schemaDifferences;
+    }, 0);
+  }
+  function filterExcludedKeys(keyPaths) {
+    if (options.excludeKeys) {
+      return keyPaths.filter((keyPath) => {
+        for (const excludedKey of options.excludeKeys) {
+          const regex = excludedKey instanceof RegExp ? excludedKey : new RegExp(`^${excludedKey}`);
+          if (excludedKey === keyPath || keyPath.match(regex)) {
+            return false;
+          }
+        }
+        return true;
+      });
+    }
+    return keyPaths;
+  }
+  function sortHeaderFields(fieldNames) {
+    if (options.sortHeader && typeof options.sortHeader === "function") {
+      return fieldNames.sort(options.sortHeader);
+    } else if (options.sortHeader) {
+      return fieldNames.sort();
+    }
+    return fieldNames;
+  }
+  function trimHeaderFields(params) {
+    if (options.trimHeaderFields) {
+      params.headerFields = params.headerFields.map((field) => field.split(".").map((component) => component.trim()).join("."));
+    }
+    return params;
+  }
+  function wrapHeaderFields(params) {
+    if (options.prependHeader) {
+      params.headerFields = params.headerFields.map(function(headingKey) {
+        return wrapFieldValueIfNecessary(headingKey);
+      });
+    }
+    return params;
+  }
+  function generateCsvHeader(params) {
+    const fieldTitleMapKeys = Object.keys(options.fieldTitleMap);
+    params.header = params.headerFields.map(function(field) {
+      let headerKey = field;
+      if (fieldTitleMapKeys.includes(field)) {
+        headerKey = options.fieldTitleMap[field];
+      } else if (!options.escapeHeaderNestedDots) {
+        headerKey = headerKey.replace(/\\\./g, ".");
+      }
+      return headerKey;
+    }).join(options.delimiter.field);
+    return params;
+  }
+  function convertKeysToHeaderFields() {
+    if (!options.keys)
+      return [];
+    return options.keys.map((key) => {
+      if (typeof key === "object" && "field" in key) {
+        options.fieldTitleMap[key.field] = key.title ?? key.field;
+        return key.field;
+      }
+      return key;
+    });
+  }
+  function extractWildcardMatchKeys() {
+    if (!options.keys)
+      return [];
+    return options.keys.flatMap((item) => {
+      if (typeof item === "string") {
+        return [];
+      } else if (item == null ? void 0 : item.wildcardMatch) {
+        return item.field;
+      }
+      return [];
+    });
+  }
+  function retrieveHeaderFields(data) {
+    const wildcardMatchKeys = extractWildcardMatchKeys();
+    const keyStrings = convertKeysToHeaderFields();
+    const fieldNames = getFieldNameList(data);
+    const processed = processSchemas(fieldNames);
+    if (options.keys) {
+      options.keys = keyStrings;
+      const matchedKeys = keyStrings.flatMap((userProvidedKey) => {
+        if (!wildcardMatchKeys.includes(userProvidedKey)) {
+          return userProvidedKey;
+        }
+        const matches = [];
+        const regex = new RegExp(`^${userProvidedKey}`);
+        for (const detectedKey of processed) {
+          if (userProvidedKey === detectedKey || detectedKey.match(regex)) {
+            matches.push(detectedKey);
+          }
+        }
+        return matches;
+      });
+      if (!options.unwindArrays) {
+        const filtered2 = filterExcludedKeys(matchedKeys);
+        return sortHeaderFields(filtered2);
+      }
+    }
+    const filtered = filterExcludedKeys(processed);
+    return sortHeaderFields(filtered);
+  }
+  function unwindRecordsIfNecessary(params, finalPass = false) {
+    if (options.unwindArrays) {
+      const originalRecordsLength = params.records.length;
+      params.headerFields.forEach((headerField) => {
+        params.records = utils$1.unwind(params.records, headerField);
+      });
+      const headerFields = retrieveHeaderFields(params.records);
+      params.headerFields = headerFields;
+      if (originalRecordsLength !== params.records.length) {
+        return unwindRecordsIfNecessary(params);
+      }
+      if (!finalPass) {
+        return unwindRecordsIfNecessary(params, true);
+      }
+      if (options.keys) {
+        const userSelectedFields = convertKeysToHeaderFields();
+        params.headerFields = filterExcludedKeys(userSelectedFields);
+      }
+      return params;
+    }
+    return params;
+  }
+  function processRecords(params) {
+    params.recordString = params.records.map((record) => {
+      const recordFieldData = retrieveRecordFieldData(record, params.headerFields), processedRecordData = recordFieldData.map((fieldValue) => {
+        fieldValue = trimRecordFieldValue(fieldValue);
+        fieldValue = preventCsvInjection(fieldValue);
+        let stringified = customValueParser ? customValueParser(fieldValue, recordFieldValueToString) : recordFieldValueToString(fieldValue);
+        stringified = wrapFieldValueIfNecessary(stringified);
+        return stringified;
+      });
+      return generateCsvRowFromRecord(processedRecordData);
+    }).join(options.delimiter.eol);
+    return params;
+  }
+  function processRecordFieldDataForExpandedArrayObject(recordFieldValue) {
+    const filteredRecordFieldValue = utils$1.removeEmptyFields(recordFieldValue);
+    if (!recordFieldValue.length || !filteredRecordFieldValue.length) {
+      return options.emptyFieldValue || "";
+    } else if (filteredRecordFieldValue.length === 1) {
+      return filteredRecordFieldValue[0];
+    }
+    return recordFieldValue;
+  }
+  function retrieveRecordFieldData(record, fields) {
+    const recordValues = [];
+    fields.forEach((field) => {
+      let recordFieldValue = (0, doc_path_1$1.evaluatePath)(record, field);
+      if (!utils$1.isUndefined(options.emptyFieldValue) && utils$1.isEmptyField(recordFieldValue)) {
+        recordFieldValue = options.emptyFieldValue;
+      } else if (options.expandArrayObjects && Array.isArray(recordFieldValue)) {
+        recordFieldValue = processRecordFieldDataForExpandedArrayObject(recordFieldValue);
+      }
+      recordValues.push(recordFieldValue);
+    });
+    return recordValues;
+  }
+  function recordFieldValueToString(fieldValue) {
+    const isDate = fieldValue instanceof Date;
+    if (fieldValue === null || Array.isArray(fieldValue) || typeof fieldValue === "object" && !isDate) {
+      return JSON.stringify(fieldValue);
+    } else if (typeof fieldValue === "undefined") {
+      return "undefined";
+    } else if (isDate && options.useDateIso8601Format) {
+      return fieldValue.toISOString();
+    } else {
+      return !options.useLocaleFormat ? fieldValue.toString() : fieldValue.toLocaleString();
+    }
+  }
+  function trimRecordFieldValue(fieldValue) {
+    if (options.trimFieldValues) {
+      if (Array.isArray(fieldValue)) {
+        return fieldValue.map(trimRecordFieldValue);
+      } else if (typeof fieldValue === "string") {
+        return fieldValue.trim();
+      }
+      return fieldValue;
+    }
+    return fieldValue;
+  }
+  function preventCsvInjection(fieldValue) {
+    if (options.preventCsvInjection) {
+      if (Array.isArray(fieldValue)) {
+        return fieldValue.map(preventCsvInjection);
+      } else if (typeof fieldValue === "string" && !utils$1.isNumber(fieldValue)) {
+        return fieldValue.replace(/^[=+\-@\t\r]+/g, "");
+      }
+      return fieldValue;
+    }
+    return fieldValue;
+  }
+  function wrapFieldValueIfNecessary(fieldValue) {
+    const wrapDelimiter = options.delimiter.wrap;
+    if (fieldValue.includes(options.delimiter.wrap)) {
+      fieldValue = fieldValue.replace(wrapDelimiterCheckRegex, wrapDelimiter + wrapDelimiter);
+    }
+    if (fieldValue.includes(options.delimiter.field) || fieldValue.includes(options.delimiter.wrap) || fieldValue.match(crlfSearchRegex) || options.wrapBooleans && (fieldValue === "true" || fieldValue === "false")) {
+      fieldValue = wrapDelimiter + fieldValue + wrapDelimiter;
+    }
+    return fieldValue;
+  }
+  function generateCsvRowFromRecord(recordFieldValues) {
+    return recordFieldValues.join(options.delimiter.field);
+  }
+  function generateCsvFromComponents(params) {
+    const header = params.header, records = params.recordString, csv = (options.excelBOM ? constants_1$2.excelBOM : "") + (options.prependHeader ? header + options.delimiter.eol : "") + records;
+    return csv;
+  }
+  function convert(data) {
+    if (!Array.isArray(data)) {
+      data = [data];
+    }
+    const headerFields = {
+      headerFields: retrieveHeaderFields(data),
+      records: data,
+      header: "",
+      recordString: ""
+    };
+    const unwinded = unwindRecordsIfNecessary(headerFields);
+    const processed = processRecords(unwinded);
+    const wrapped = wrapHeaderFields(processed);
+    const trimmed = trimHeaderFields(wrapped);
+    const generated = generateCsvHeader(trimmed);
+    return generateCsvFromComponents(generated);
+  }
+  return {
+    convert
+  };
+};
+json2csv$1.Json2Csv = Json2Csv;
+var csv2json$1 = {};
+var __createBinding = commonjsGlobal && commonjsGlobal.__createBinding || (Object.create ? function(o, m, k2, k22) {
+  if (k22 === void 0) k22 = k2;
+  var desc = Object.getOwnPropertyDescriptor(m, k2);
+  if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+    desc = { enumerable: true, get: function() {
+      return m[k2];
+    } };
+  }
+  Object.defineProperty(o, k22, desc);
+} : function(o, m, k2, k22) {
+  if (k22 === void 0) k22 = k2;
+  o[k22] = m[k2];
+});
+var __setModuleDefault = commonjsGlobal && commonjsGlobal.__setModuleDefault || (Object.create ? function(o, v) {
+  Object.defineProperty(o, "default", { enumerable: true, value: v });
+} : function(o, v) {
+  o["default"] = v;
+});
+var __importStar = commonjsGlobal && commonjsGlobal.__importStar || function(mod) {
+  if (mod && mod.__esModule) return mod;
+  var result = {};
+  if (mod != null) {
+    for (var k2 in mod) if (k2 !== "default" && Object.prototype.hasOwnProperty.call(mod, k2)) __createBinding(result, mod, k2);
+  }
+  __setModuleDefault(result, mod);
+  return result;
+};
+Object.defineProperty(csv2json$1, "__esModule", { value: true });
+csv2json$1.Csv2Json = void 0;
+const doc_path_1 = path;
+const constants_1$1 = constants;
+const utils = __importStar(utils$2);
+const Csv2Json = function(options) {
+  const escapedWrapDelimiterRegex = new RegExp(options.delimiter.wrap + options.delimiter.wrap, "g"), excelBOMRegex = new RegExp("^" + constants_1$1.excelBOM), valueParserFn = options.parseValue && typeof options.parseValue === "function" ? options.parseValue : JSON.parse;
+  function processHeaderKey(headerKey) {
+    headerKey = removeWrapDelimitersFromValue(headerKey);
+    if (options.trimHeaderFields) {
+      return headerKey.split(".").map((component) => component.trim()).join(".");
+    }
+    return headerKey;
+  }
+  function retrieveHeading(lines) {
+    let headerFields = [];
+    if (options.headerFields) {
+      headerFields = options.headerFields.map((headerField, index) => ({
+        value: processHeaderKey(headerField),
+        index
+      }));
+    } else {
+      const headerRow = lines[0];
+      headerFields = headerRow.map((headerKey, index) => ({
+        value: processHeaderKey(headerKey),
+        index
+      }));
+      if (options.keys) {
+        const keys = options.keys;
+        headerFields = headerFields.filter((headerKey) => keys.includes(headerKey.value));
+      }
+    }
+    return {
+      lines,
+      headerFields,
+      recordLines: []
+    };
+  }
+  function stripExcelBOM(csv) {
+    if (options.excelBOM) {
+      return csv.replace(excelBOMRegex, "");
+    }
+    return csv;
+  }
+  function splitLines(csv) {
+    const lines = [], lastCharacterIndex = csv.length - 1, eolDelimiterLength = options.delimiter.eol.length, stateVariables = {
+      insideWrapDelimiter: false,
+      parsingValue: true,
+      justParsedDoubleQuote: false,
+      startIndex: 0
+    };
+    let splitLine = [], character, charBefore, charAfter, nextNChar, index = 0;
+    while (index < csv.length) {
+      character = csv[index];
+      charBefore = index ? csv[index - 1] : "";
+      charAfter = index < lastCharacterIndex ? csv[index + 1] : "";
+      nextNChar = utils.getNCharacters(csv, index, eolDelimiterLength);
+      if ((nextNChar === options.delimiter.eol && !stateVariables.insideWrapDelimiter || index === lastCharacterIndex) && charBefore === options.delimiter.field) {
+        if (nextNChar === options.delimiter.eol && stateVariables.startIndex === index) {
+          splitLine.push("");
+        } else if (character === options.delimiter.field) {
+          splitLine.push("");
+        } else {
+          splitLine.push(csv.substring(stateVariables.startIndex));
+        }
+        splitLine.push("");
+        lines.push(splitLine);
+        splitLine = [];
+        stateVariables.startIndex = index + eolDelimiterLength;
+        stateVariables.parsingValue = true;
+        stateVariables.insideWrapDelimiter = charAfter === options.delimiter.wrap;
+      } else if (index === lastCharacterIndex && character === options.delimiter.field) {
+        const parsedValue = csv.substring(stateVariables.startIndex, index);
+        splitLine.push(parsedValue);
+        splitLine.push("");
+        lines.push(splitLine);
+      } else if (index === lastCharacterIndex || nextNChar === options.delimiter.eol && // if we aren't inside wrap delimiters or if we are but the character before was a wrap delimiter and we didn't just see two
+      (!stateVariables.insideWrapDelimiter || stateVariables.insideWrapDelimiter && charBefore === options.delimiter.wrap && !stateVariables.justParsedDoubleQuote)) {
+        const toIndex = index !== lastCharacterIndex || charBefore === options.delimiter.wrap ? index : void 0;
+        splitLine.push(csv.substring(stateVariables.startIndex, toIndex));
+        lines.push(splitLine);
+        splitLine = [];
+        stateVariables.startIndex = index + eolDelimiterLength;
+        stateVariables.parsingValue = true;
+        stateVariables.insideWrapDelimiter = charAfter === options.delimiter.wrap;
+      } else if (character === options.delimiter.wrap && charBefore === options.delimiter.field && !stateVariables.insideWrapDelimiter && !stateVariables.parsingValue) {
+        stateVariables.startIndex = index;
+        stateVariables.insideWrapDelimiter = true;
+        stateVariables.parsingValue = true;
+        if (utils.getNCharacters(csv, index + 1, eolDelimiterLength) === options.delimiter.eol) {
+          index += options.delimiter.eol.length + 1;
+        }
+      } else if (charBefore === options.delimiter.field && character === options.delimiter.wrap && charAfter === options.delimiter.eol) {
+        splitLine.push(csv.substring(stateVariables.startIndex, index - 1));
+        stateVariables.startIndex = index;
+        stateVariables.parsingValue = true;
+        stateVariables.insideWrapDelimiter = true;
+        stateVariables.justParsedDoubleQuote = true;
+        index += 1;
+      } else if ((charBefore !== options.delimiter.wrap || stateVariables.justParsedDoubleQuote && charBefore === options.delimiter.wrap) && character === options.delimiter.wrap && utils.getNCharacters(csv, index + 1, eolDelimiterLength) === options.delimiter.eol) {
+        stateVariables.insideWrapDelimiter = false;
+        stateVariables.parsingValue = false;
+      } else if (character === options.delimiter.wrap && (index === 0 || utils.getNCharacters(csv, index - eolDelimiterLength, eolDelimiterLength) === options.delimiter.eol && !stateVariables.insideWrapDelimiter)) {
+        stateVariables.insideWrapDelimiter = true;
+        stateVariables.parsingValue = true;
+        stateVariables.startIndex = index;
+      } else if (character === options.delimiter.wrap && charAfter === options.delimiter.field) {
+        splitLine.push(csv.substring(stateVariables.startIndex, index + 1));
+        stateVariables.startIndex = index + 2;
+        stateVariables.insideWrapDelimiter = false;
+        stateVariables.parsingValue = false;
+      } else if (character === options.delimiter.wrap && charBefore === options.delimiter.field && !stateVariables.insideWrapDelimiter && stateVariables.parsingValue) {
+        splitLine.push(csv.substring(stateVariables.startIndex, index - 1));
+        stateVariables.insideWrapDelimiter = true;
+        stateVariables.parsingValue = true;
+        stateVariables.startIndex = index;
+      } else if (character === options.delimiter.wrap && charAfter === options.delimiter.wrap && index !== stateVariables.startIndex) {
+        index += 2;
+        stateVariables.justParsedDoubleQuote = true;
+        continue;
+      } else if (character === options.delimiter.field && charBefore !== options.delimiter.wrap && charAfter !== options.delimiter.wrap && !stateVariables.insideWrapDelimiter && stateVariables.parsingValue) {
+        splitLine.push(csv.substring(stateVariables.startIndex, index));
+        stateVariables.startIndex = index + 1;
+      } else if (character === options.delimiter.field && charBefore === options.delimiter.wrap && charAfter !== options.delimiter.wrap && !stateVariables.parsingValue) {
+        stateVariables.insideWrapDelimiter = false;
+        stateVariables.parsingValue = true;
+        stateVariables.startIndex = index + 1;
+      }
+      index++;
+      stateVariables.justParsedDoubleQuote = false;
+    }
+    return lines;
+  }
+  function retrieveRecordLines(params) {
+    if (options.headerFields) {
+      params.recordLines = params.lines;
+    } else {
+      params.recordLines = params.lines.splice(1);
+    }
+    return params;
+  }
+  function retrieveRecordValueFromLine(headerField, line) {
+    const value = line[headerField.index];
+    return processRecordValue(value);
+  }
+  function processRecordValue(fieldValue) {
+    const parsedJson = parseValue(fieldValue);
+    if (!utils.isError(parsedJson) && !utils.isInvalid(parsedJson)) {
+      return parsedJson;
+    } else if (fieldValue === "undefined") {
+      return void 0;
+    }
+    return fieldValue;
+  }
+  function trimRecordValue(fieldValue) {
+    if (options.trimFieldValues && fieldValue !== null) {
+      return fieldValue.trim();
+    }
+    return fieldValue;
+  }
+  function createDocument(headerFields, line) {
+    return headerFields.reduce((document, headerField) => {
+      const value = retrieveRecordValueFromLine(headerField, line);
+      try {
+        return (0, doc_path_1.setPath)(document, headerField.value, value);
+      } catch (error2) {
+        return document;
+      }
+    }, {});
+  }
+  function removeWrapDelimitersFromValue(fieldValue) {
+    const firstChar = fieldValue[0], lastIndex = fieldValue.length - 1, lastChar = fieldValue[lastIndex];
+    if (firstChar === options.delimiter.wrap && lastChar === options.delimiter.wrap) {
+      return fieldValue.length <= 2 ? "" : fieldValue.substring(1, lastIndex);
+    }
+    return fieldValue;
+  }
+  function unescapeWrapDelimiterInField(fieldValue) {
+    return fieldValue.replace(escapedWrapDelimiterRegex, options.delimiter.wrap);
+  }
+  function transformRecordLines(params) {
+    return params.recordLines.reduce((generatedJsonObjects, line) => {
+      line = line.map((fieldValue) => {
+        fieldValue = removeWrapDelimitersFromValue(fieldValue);
+        fieldValue = unescapeWrapDelimiterInField(fieldValue);
+        fieldValue = trimRecordValue(fieldValue);
+        return fieldValue;
+      });
+      const generatedDocument = createDocument(params.headerFields, line);
+      return generatedJsonObjects.concat(generatedDocument);
+    }, []);
+  }
+  function parseValue(value) {
+    try {
+      if (utils.isStringRepresentation(value, options) && !utils.isDateRepresentation(value)) {
+        return value;
+      }
+      const parsedJson = valueParserFn(value);
+      if (Array.isArray(parsedJson)) {
+        return parsedJson.map(trimRecordValue);
+      }
+      return parsedJson;
+    } catch (err) {
+      return err;
+    }
+  }
+  function convert(data) {
+    const stripped = stripExcelBOM(data);
+    const split = splitLines(stripped);
+    const heading = retrieveHeading(split);
+    const lines = retrieveRecordLines(heading);
+    return transformRecordLines(lines);
+  }
+  return {
+    convert
+  };
+};
+csv2json$1.Csv2Json = Csv2Json;
+Object.defineProperty(converter, "__esModule", { value: true });
+converter.csv2json = json2csv_2 = converter.json2csv = void 0;
+const constants_1 = constants;
+const json2csv_1 = json2csv$1;
+const csv2json_1 = csv2json$1;
+const utils_1 = utils$2;
+function json2csv(data, options) {
+  const builtOptions = (0, utils_1.buildJ2COptions)(options ?? {});
+  (0, utils_1.validate)(data, utils_1.isObject, constants_1.errors.json2csv);
+  return (0, json2csv_1.Json2Csv)(builtOptions).convert(data);
+}
+var json2csv_2 = converter.json2csv = json2csv;
+function csv2json(data, options) {
+  const builtOptions = (0, utils_1.buildC2JOptions)(options ?? {});
+  (0, utils_1.validate)(data, utils_1.isString, constants_1.errors.csv2json);
+  return (0, csv2json_1.Csv2Json)(builtOptions).convert(data);
+}
+converter.csv2json = csv2json;
 function b(...e2) {
   if (e2.length > 0) {
     let o = e2[0].length;
@@ -16143,12 +17128,12 @@ const indicators = {
   ]
 };
 createRequire(import.meta.url);
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-process.env.APP_ROOT = path.join(__dirname, "..");
+const __dirname = path$1.dirname(fileURLToPath(import.meta.url));
+process.env.APP_ROOT = path$1.join(__dirname, "..");
 const VITE_DEV_SERVER_URL = process.env["VITE_DEV_SERVER_URL"];
-const MAIN_DIST = path.join(process.env.APP_ROOT, "dist-electron");
-const RENDERER_DIST = path.join(process.env.APP_ROOT, "dist");
-process.env.VITE_PUBLIC = VITE_DEV_SERVER_URL ? path.join(process.env.APP_ROOT, "public") : RENDERER_DIST;
+const MAIN_DIST = path$1.join(process.env.APP_ROOT, "dist-electron");
+const RENDERER_DIST = path$1.join(process.env.APP_ROOT, "dist");
+process.env.VITE_PUBLIC = VITE_DEV_SERVER_URL ? path$1.join(process.env.APP_ROOT, "public") : RENDERER_DIST;
 let win;
 const store = new ElectronStore({
   defaults: {
@@ -16160,9 +17145,9 @@ function createWindow() {
   win = new BrowserWindow({
     width: 1024,
     height: 768,
-    icon: path.join(process.env.VITE_PUBLIC, "electron-vite.svg"),
+    icon: path$1.join(process.env.VITE_PUBLIC, "electron-vite.svg"),
     webPreferences: {
-      preload: path.join(__dirname, "preload.mjs")
+      preload: path$1.join(__dirname, "preload.mjs")
     }
   });
   win.removeMenu();
@@ -16173,7 +17158,7 @@ function createWindow() {
   if (VITE_DEV_SERVER_URL) {
     win.loadURL(VITE_DEV_SERVER_URL);
   } else {
-    win.loadFile(path.join(RENDERER_DIST, "index.html"));
+    win.loadFile(path$1.join(RENDERER_DIST, "index.html"));
   }
 }
 function getSignature(params, creds) {
@@ -16304,7 +17289,6 @@ async function fetchFullDataFromBybit(data) {
       });
       const lastTimestamp = responseData2.result.list[responseData2.result.list.length - 1][0];
       dataset2.name = `${data.symbol} at ${data.interval} from ${new Date(data.start).toLocaleDateString()} to ${new Date(lastTimestamp).toLocaleString()}`;
-      dataset2.data.list.push(...responseData2.result.list);
       if (lastTimestamp >= (data.end || Date.now())) {
         const progress2 = {
           status: "ended",
@@ -16357,7 +17341,7 @@ app.whenReady().then(() => {
           return "Failed";
         }
         dataset = response;
-        console.log(dataset.data.list[209], dataset.data.list[210]);
+        console.log(dataset.data.list[0]);
         return "Success";
       } else {
         return "Failed";
@@ -16468,6 +17452,37 @@ app.whenReady().then(() => {
       return "Success";
     } catch (error2) {
       console.error("Error processing indicators:", error2);
+      return "Failed";
+    }
+  });
+  ipcMain.handle("selectDirectory", async (event) => {
+    const result = await dialog.showOpenDialog({
+      properties: ["openDirectory"]
+    });
+    return result;
+  });
+  ipcMain.handle("exportDataset", async (event, data) => {
+    try {
+      const { directory, dataset: dataset2 } = data;
+      const csv = json2csv_2(dataset2.data.list);
+      if (csv) {
+        const progress = {
+          status: "ongoing",
+          progress: 50,
+          state: "Converting to csv..."
+        };
+        win == null ? void 0 : win.webContents.send("progress", progress);
+        const filePath = path$1.join(directory, `${dataset2.data.symbol}_${dataset2.data.category}_data.csv`);
+        await fs.promises.writeFile(filePath, csv);
+        win == null ? void 0 : win.webContents.send("progress", {
+          status: "ended",
+          progress: 100,
+          state: "Finished"
+        });
+        return "Success";
+      }
+    } catch (error2) {
+      console.error("Error exporting dataset:", error2);
       return "Failed";
     }
   });

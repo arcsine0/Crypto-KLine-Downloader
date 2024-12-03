@@ -1,14 +1,17 @@
-import { app, BrowserWindow, ipcMain } from "electron";
+import { app, BrowserWindow, ipcMain, dialog } from "electron";
 import Store from "electron-store";
 
 import { createRequire } from "node:module";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
+import fs from "node:fs";
 
 import { createHmac } from "node:crypto";
 
-import { requestData, requestCredentials, RequestHeaders, responseData, Dataset, ProgressProps } from "@/lib/types";
-import { indicators, intervals, defaultColumns } from "../src/lib/arrays";
+import { json2csv } from "json-2-csv";
+
+import { requestData, requestCredentials, RequestHeaders, responseData, Dataset, ProgressProps, DataTableRow } from "@/lib/types";
+import { indicators, intervals } from "../src/lib/arrays";
 
 const require = createRequire(import.meta.url);
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -220,7 +223,6 @@ async function fetchFullDataFromBybit(data: requestData): Promise<Dataset | "Emp
             const lastTimestamp = responseData.result.list[responseData.result.list.length - 1][0];
 
             dataset.name = `${data.symbol} at ${data.interval} from ${new Date(data.start).toLocaleDateString()} to ${new Date(lastTimestamp).toLocaleString()}`
-            dataset.data.list.push(...responseData.result.list);
 
             if (lastTimestamp >= (data.end || Date.now())) {
                 const progress: ProgressProps = {
@@ -288,7 +290,7 @@ app.whenReady().then(() => {
             if (response) {
                 if (response === "Empty") { return "Failed"; }
                 dataset = response;
-                console.log(dataset.data.list[209], dataset.data.list[210])
+                console.log(dataset.data.list[0]);
 
                 return "Success";
             } else {
@@ -375,7 +377,7 @@ app.whenReady().then(() => {
                         });
                     } else if (typeof result === "object" && result !== null) {
                         const resultKeys = Object.keys(result);
-                
+
                         for (const key of resultKeys) {
                             const columnName = `${indicatorName}_${key.toUpperCase()}`;
                             datasetWithIndicators.data.list.forEach((item, index) => {
@@ -408,6 +410,45 @@ app.whenReady().then(() => {
         } catch (error) {
             console.error("Error processing indicators:", error);
             return "Failed"; // Indicate failure
+        }
+    });
+
+    ipcMain.handle("selectDirectory", async (event) => {
+        const result = await dialog.showOpenDialog({
+            properties: ["openDirectory"],
+        });
+
+        return result;
+    });
+
+    ipcMain.handle("exportDataset", async (event, data: { directory: string, dataset: Dataset }) => {
+        try {
+            const { directory, dataset } = data;
+            const csv = json2csv(dataset.data.list);
+
+            if (csv) {
+                const progress: ProgressProps = {
+                    status: "ongoing",
+                    progress: 50,
+                    state: "Converting to csv...",
+                }
+                win?.webContents.send("progress", progress);
+
+                const filePath = path.join(directory, `${dataset.data.symbol}_${dataset.data.category}_data.csv`);
+
+                await fs.promises.writeFile(filePath, csv);
+
+                win?.webContents.send("progress", {
+                    status: "ended",
+                    progress: 100,
+                    state: "Finished",
+                });
+
+                return "Success";
+            }
+        } catch (error) {
+            console.error("Error exporting dataset:", error);
+            return "Failed";
         }
     });
 
