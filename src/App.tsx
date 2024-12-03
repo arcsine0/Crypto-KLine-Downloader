@@ -58,6 +58,8 @@ function App() {
             setShowProgressBar(true);
         } else {
             setShowProgressBar(false);
+            setProgressCount(0);
+            setProgressState("Doing something...");
         }
 
         setProgressCount(data.progress);
@@ -65,7 +67,7 @@ function App() {
     });
 
     return (
-        <div className="h-screen w-screen flex flex-row">
+        <div className="w-screen h-screen flex flex-row">
             <Sidebar
                 collapsible="icon"
                 onMouseEnter={() => setOpen(true)}
@@ -131,8 +133,8 @@ function App() {
                     </SidebarMenu>
                 </SidebarFooter>
             </Sidebar>
-            <div className="w-full h-full flex flex-col justify-between">
-                <div className="w-full h-full p-8">
+            <div className="w-full h-full flex flex-col justify-between space-y-2">
+                <div className="w-full flex-1 p-8">
                     {renderPages()}
                 </div>
                 <div className={cn([

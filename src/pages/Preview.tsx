@@ -1,13 +1,20 @@
 import { useState, useEffect } from "react";
 
 import { Table, TableBody, TableCaption, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { DataTable } from "@/components/ui/data-table";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { LoadingSpinner } from "@/components/ui/spinner";
+
+import { ColumnDef } from "@tanstack/react-table";
 
 import { cn } from "@/lib/utils";
-import { Dataset } from "@/lib/types";
+import { Dataset, DataTableRow } from "@/lib/types";
+import { Label } from "@/components/ui/label";
 
 export default function PreviewPage() {
     const [dataset, setDataset] = useState<Dataset | undefined>(undefined);
-    const previewRows = 50;
+    const [isExporting, setIsExporting] = useState<boolean>(false);
 
     const getDataset = async () => {
         try {
@@ -15,7 +22,7 @@ export default function PreviewPage() {
 
             if (response) {
                 if (response.data.list.length > 0) {
-                    setDataset(response);
+                    setDataset(response)
                 }
             }
         } catch (error) {
@@ -28,44 +35,44 @@ export default function PreviewPage() {
     }, [])
 
     return (
-        <div className="w-full h-full flex flex-col space-y-2">
-            <span className="text-2xl text-zinc-900 font-bold">Preview and Export</span>
-            <div className="w-full flex flex-row space-x-4"> 
-                <span className="text-sm text-zinc-500">Showing <span className="text-bold">{previewRows}</span> out of <span className="text-bold">{dataset?.data.list.length || 0}</span> Rows</span>
+        <div className="w-full h-full flex flex-col justify-between space-y-2">
+            <div className="w-full flex flex-col space-y-2">
+                <span className="text-2xl text-zinc-900 font-bold">Preview and Export</span>
             </div>
-            <div className="w-full h-1/2">
+            <div className="w-full flex flex-col items-center space-y-2">
                 {dataset ?
-                    <Table className="w-full">
-                        <TableCaption>{dataset.name}</TableCaption>
-                        <TableHeader className="grow">
-                            <TableRow>
-                                <TableHead>Timestamp</TableHead>
-                                <TableHead>Open</TableHead>
-                                <TableHead>High</TableHead>
-                                <TableHead>Low</TableHead>
-                                <TableHead>Close</TableHead>
-                                <TableHead>Volume</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody className="shrink overflow-y-scroll">
-                            {dataset.data.list.slice(0, previewRows).map((item, index) => (
-                                <TableRow key={index}>
-                                    <TableCell>{item[0]}</TableCell>
-                                    <TableCell>{item[1]}</TableCell>
-                                    <TableCell>{item[2]}</TableCell>
-                                    <TableCell>{item[3]}</TableCell>
-                                    <TableCell>{item[4]}</TableCell>
-                                    <TableCell>{item[5]}</TableCell>
-                                </TableRow>
-                            ))}
-                        </TableBody>
-                    </Table>
+                    <DataTable<DataTableRow, unknown> 
+                        columns={Object.keys(dataset.data.list[0]).map((key) => ({
+                            accessorKey: key,
+                            header: key[0].toUpperCase() + key.slice(1),
+                            cell: (info) => info.getValue(),
+
+                        }))}
+                        data={dataset.data.list as DataTableRow[]}
+                    />
                     :
                     <span className="text-md text-zinc-500 text-center">No data fetched yet</span>
                 }
+                {/* <span className="text-sm text-zinc-500 text-center">{dataset?.name}</span> */}
             </div>
-            
-
+            <div className="w-full flex flex-col space-y-2">
+                <span className="text-lg text-zinc-900 font-bold">Export dataset</span>
+                <Label htmlFor="directory">Output directory</Label>
+                <Input id="directory" type="file" />
+                <Button
+                    className="w-full"
+                    onClick={() => { }}
+                >
+                    {isExporting ? (
+                        <div className="flex flex-row space-x-2">
+                            <LoadingSpinner />
+                            <span className="text-zinc-50">Exporting</span>
+                        </div>
+                    ) : (
+                        <span className="text-zinc-50">Export</span>
+                    )}
+                </Button>
+            </div>
         </div>
     )
 }

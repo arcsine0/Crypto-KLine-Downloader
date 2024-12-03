@@ -21,28 +21,21 @@ const formSchema = z.object({
 });
 
 export default function SettingsPage() {
-    const [config, setConfig] = useState<{
-        apiKey: string | undefined;
-        apiSecret: string | undefined;
-    } | undefined>(undefined);
-
     const [isConfigSetting, setIsConfigSetting] = useState<boolean>(false);
 
     const form = useForm({
         resolver: zodResolver(formSchema),
         defaultValues: {
-            key: config?.apiKey || "",
-            secret: config?.apiSecret || "",
+            key: "",
+            secret: "",
         },
     });
 
     const getAPIConfig = async () => {
         const response = await window.ipcRenderer.invoke("getAPIConfig");
-        if (response) {
-            setConfig({
-                apiKey: response.apiKey,
-                apiSecret: response.apiSecret,
-            })
+        if (response) { 
+            form.register("key", response.apiKey);
+            form.register("secret", response.apiSecret);
         }
     };
 

@@ -38,7 +38,15 @@ export interface Dataset {
     data: {
         symbol: string;
         category: string;
-        list: any[];
+        list: {
+            timestamp: number;
+            open: number;
+            high: number;
+            low: number;
+            close: number;
+            volume: number;
+            [key: string]: any;
+        }[];
     };
 }
 
@@ -46,4 +54,35 @@ export interface ProgressProps {
     status: string;
     progress: number;
     state: string;
+}
+
+export interface IndicatorResult {
+    result?: any;
+    [key: string]: any;
+}
+
+export interface IndicatorProps<T = number, R extends IndicatorResult = IndicatorResult> { //T defaults to number
+    [key: string]: {
+        title: string;
+        value: string;
+        func: (data: T[], ...args: any[]) => R;
+        params: ("openings" | "highs" | "lows" | "closings" | "volumes" | "any")[];
+        config: {
+            period?: number;
+            smooth?: number;
+            multiplier?: number;
+            start?: number;
+            [key: string]: any;
+        }
+    }[]
+}
+
+export interface DataTableRow {
+    timestamp: number;
+    open: number;
+    high: number;
+    low: number;
+    close: number;
+    volume: number;
+    [key: string]: any;
 }
